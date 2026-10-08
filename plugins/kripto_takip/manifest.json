@@ -1,0 +1,13 @@
+{
+  "name": "kripto_takip",
+  "version": "1.0",
+  "description": "Kripto para fiyatları ve 24 saatlik değişim (CoinGecko, ücretsiz)",
+  "triggers": [
+    "kripto", "bitcoin", "btc", "ethereum", "eth", "coin", "kripto fiyat",
+    "btc fiyat", "eth fiyat", "kripto takip", "coinleri göster"
+  ],
+  "requires": ["requests"],
+  "author": "JARVIS APEX PRIME",
+  "enabled": true
+}
+

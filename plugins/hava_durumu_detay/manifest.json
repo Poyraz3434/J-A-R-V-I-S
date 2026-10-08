@@ -1,0 +1,13 @@
+{
+  "name": "hava_durumu_detay",
+  "version": "1.0",
+  "description": "Saatlik ve 7 günlük detaylı hava tahmini (Open-Meteo, ücretsiz)",
+  "triggers": [
+    "detaylı hava", "hava tahmini", "haftalık hava", "7 günlük hava",
+    "yarın hava", "bu hafta hava", "saatlik hava", "hava detay"
+  ],
+  "requires": ["requests"],
+  "author": "JARVIS APEX PRIME",
+  "enabled": true
+}
+

@@ -1,0 +1,34 @@
+# Core GUI and network
+PySide6>=6.7,<7
+requests>=2.32,<3
+psutil>=6,<7
+pyperclip>=1.9,<2
+
+# AI and voice
+Groq>=0.11,<1
+openai>=1.52,<3
+edge-tts>=6.1,<7
+SpeechRecognition>=3.10,<4
+
+# Content and automation
+beautifulsoup4>=4.12,<5
+speedtest-cli>=2.1,<3
+PyMuPDF>=1.24,<2
+pywhatkit>=5.4,<6
+playwright>=1.48,<2
+
+# Finance and desktop control
+yfinance>=0.2.40,<1
+numpy>=2,<3
+mss>=9,<10
+pygame>=2.6,<3
+pygetwindow>=0.0.9,<1
+pytesseract>=0.3.13,<1
+Pillow>=10,<12
+pyautogui>=0.9.54,<1
+
+# Sunum üretimi (Özellik 1)
+python-pptx>=1.0,<2
+
+# Geliştirme araçları (dağıtım paketine girmez)
+ruff>=0.6

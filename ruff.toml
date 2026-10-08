@@ -1,0 +1,15 @@
+# JARVIS lint kapısı — yalnızca hata sınıfı kurallar.
+# Stil kuralları (I001 import sırası, BLE001 genel except, DTZ tzinfo vb.)
+# kasten seçilmedi: mevcut kod tabanı bu tarzda yazıldı ve toplu stil
+# değişikliği regresyon riski taşır. Kapı: `python -m ruff check .`
+exclude = [".venv", "build", "dist", "Output"]
+
+[lint]
+select = [
+    "E9",    # sözdizimi hataları
+    "F821",  # tanımsız ad (NameError riski)
+    "F811",  # tekrar tanımlama
+    "F841",  # kullanılmayan yerel değişken
+    "B023",  # döngü değişkenini yakalayan lambda/kapanım
+    "B033",  # set/dict içinde tekrar değer
+]

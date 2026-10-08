@@ -1,0 +1,100 @@
+{
+  "meta": {
+    "updated": "2026-09",
+    "source": "MEB genel müfredat referansı — GÜNCELLENEBİLİR veri katmanı (resmi kaynakla yenilenmelidir)",
+    "schema": "grades[<sınıf numarası>][<ders>] = [konular]"
+  },
+  "grades": {
+    "1": {
+      "Matematik": ["Sayılar ve basamaklar (100'e kadar)", "Toplama ve çıkarma", "Çarpma", "Bölme", "Geometrik şekiller", "Ölçme (uzunluk, zaman)"],
+      "Türkçe": ["Sesler ve heceler", "Okuma-anlama", "Cümle kurma", "Yazım yönü ve noktalama", "Görsel okuma"],
+      "Hayat Bilgisi": ["Okulumuz ve evimiz", "Sağlıklı yaşam", "Aile ve arkadaşlar", "Doğa ve çevre", "Güvenli teknoloji kullanımı (temel)"],
+      "İngilizce": ["Alfabe ve sayılar", "Renkler", "Aile ve hayvanlar", "Selamlaşma", "Basit komutlar"]
+    },
+    "2": {
+      "Matematik": ["Üç basamaklı sayılar", "Çarpma ve bölme işlemleri", "Kesirlerle tanışma", "Uzunluk/ağırlık ölçme", "Şekiller ve simetri"],
+      "Türkçe": ["Okuma ve anlama", "Hikâye öğeleri", "Sesli/sessiz okuma", "Noktalama işaretleri", "Yaratıcı yazma"],
+      "Hayat Bilgisi": ["Sağlıklı beslenme", "Trafik işaretleri", "Ülkemizdeki bayramlar", "Çevre kirliliği", "Teknolojiyi güvenli kullanma"],
+      "İngilizce": ["Sayılar 1-100", "Yönler ve yerler", "Yiyecek ve içecek", "Hava durumu", "Basit diyaloglar"]
+    },
+    "3": {
+      "Matematik": ["Çarpma ve bölme (çok basamaklı)", "Kesirler", "Geometrik cisimler", "Alan ve çevre kavramı", "Zaman ölçme", "Veri toplama"],
+      "Türkçe": ["Paragrafta ana düşünce", "Sıfat ve zarflar", "Yazım kuralları (büyük harf)", "Metin türleri", "Dinleme ve konuşma"],
+      "Fen Bilimleri": ["Hücre kavramı (giriş)", "Kuvvet ve hareket", "Madde ve özellikleri", "Canlılar ve yaşam alanları", "Elektrik devreleri"],
+      "Sosyal Bilgiler": ["Yer küre ve harita", "Kültür mirasları", "Birey ve toplum", "Çevre ve toplum", "İletişim araçları"],
+      "İngilizce": ["Günlük aktiviteler", "Meslekler", "Eşyalarım", "Mevsimler", "Soru cümleleri"]
+    },
+    "4": {
+      "Matematik": ["Büyük sayılar", "Kesirlerle toplama-çıkarma", "Ondalık sayılar", "Açılar", "Alan-çevre hesabı", "Grafik okuma"],
+      "Türkçe": ["Ana fikir ve yardımcı düşünce", "Fiiller", "Mektup/e-posta yazma", "Atasözleri ve deyimler", "Rapor yazma"],
+      "Fen Bilimleri": ["Kuvvetin etkileri", "Isı ve sıcaklık", "Besinlerimiz", "Vücudumuzdaki sistemler", "Sesin yayılması"],
+      "Sosyal Bilgiler": ["Türkiye'nin yer küredeki konumu", "İnsanlar ve yerler", "Kültür ve miras", "Demokratik katılım", "Bilgi teknolojileri"],
+      "İngilizce": ["Sınıf nesneleri", "Yükseklik-uzunluk", "Alışveriş", "Sağlık", "Geçmiş zaman (giriş)"]
+    },
+    "5": {
+      "Matematik": ["Doğal sayılar ve işlem önceliği", "Kesirler", "Ondalık sayılar", "Yüzdeler", "Geometride temel kavramlar", "Veri analizi"],
+      "Türkçe": ["Metin türleri (hikâye, şiir)", "Sözcükte anlam", "Yapısal sözcükler", "Yazım kuralları", "Rapor/proje yazma"],
+      "Fen Bilimleri": ["Hücre", "Kuvvet ve basit makineler", "Sağlıklı yaşam", "Madde döngüleri", "Uzay ve Güneş Sistemi"],
+      "Sosyal Bilgiler": ["İlk ve orta çağ uygarlıkları", "Coğrafi keşifler", "Milli mücadele", "Doğal afetler", "Ekonomik faaliyetler"],
+      "İngilizce": ["Üneler ve giysiler", "Spor aktiviteleri", "Yol tarifleri", "Zaman ifadeleri", "Gelecek zaman (giriş)"]
+    },
+    "6": {
+      "Matematik": ["Tam sayılar", "Çarpanlar ve katlar", "Kümeler", "Açılar", "Çemberin alanı/çevresi", "Veri toplama ve grafik"],
+      "Türkçe": ["Paragrafta yapı", "Cümlenin ögeleri", "Fiilimsiler", "Şiir ve nazım biçimleri", "Dil bilgisi kuralları"],
+      "Fen Bilimleri": ["Vücudumuzdaki sistemler", "Kuvvet ve hareket", "Elektrik devreleri", "Mevsimler ve iklim", "Madde ve ısı"],
+      "Sosyal Bilgiler": ["Yönetim biçimleri", "Tarihî eserler", "Bilişim çağında bilgi", "Küresel ısınma", "Ekonomi ve ticaret"],
+      "İngilizce": ["Modals (can, must)", "Past simple", "Directions", "Food and drink", "Comparatives"]
+    },
+    "7": {
+      "Matematik": ["Rasyonel sayılar", "Oran-orantı", "Cebirsel ifadeler", "Çokgenler", "Alan-hacim", "Olasılığa giriş"],
+      "Türkçe": ["Anlatım biçimleri", "Sözcükte/cümlerde anlam", "Noktalama kuralları", "Metin türleri", "Araştırma ve rapor"],
+      "Fen Bilimleri": ["Hücre bölünmeleri", "Kuvvet ve enerji", "Saf madde ve karışımlar", "DNA ve kalıtım", "Ses ve dalga"],
+      "Sosyal Bilgiler": ["İlk Türk devletleri", "Orta Çağ Avrupası", "Coğrafi konum", "Nüfus ve göç", "Sürdürülebilir kalkınma"],
+      "İngilizce": ["Past continuous", "Future forms", "If clauses (giriş)", "Technology", "Culture and traditions"]
+    },
+    "8": {
+      "Matematik": ["Üslü ifadeler", "Kareköklü ifadeler", "Olasılık", "Cebirsel işlem problemleri", "Dönüşüm geometrisi", "Verilerin grafiği"],
+      "Türkçe": ["Söz sanatları", "Metinler arası ilişki", "Yazım denetimi", "Makale/öykü incelemesi", "Sözlu anlatım"],
+      "Fen Bilimleri": ["Mevsimlerin oluşumu", "Kuvvet ve basınç", "Element ve bileşikler", "Canlılarda üreme-büyüme", "Elektromanyetik spektrum"],
+      "Sosyal Bilgiler": ["Türk-İslam devletleri", "Rönesans ve reform", "Sanayi devrimi", "Kurtuluş savaşı", "Atatürkçülük"],
+      "İngilizce": ["Passive voice", "Reported speech", "Relative clauses", "Environment", "Jobs and careers"]
+    },
+    "9": {
+      "Matematik": ["Mantık (önermeler)", "Kümeler", "Fonksiyonlar", "Polinomlar", "İkinci dereceden denklemler", "Analitik geometri"],
+      "Türkçe": ["Edebi sanatlar", "Şiir bilgisi", "İslamiyet öncesi Türk edebiyatı", "Metin çözümleme", "Yazılı anlatım"],
+      "Fizik": ["Fizik bilimine giriş", "Madde ve özellikleri", "Hareket ve kuvvet", "Enerji", "Isı ve sıcaklık", "Elektrostatik"],
+      "Kimya": ["Kimya bilimi", "Atom ve periyodik tablo", "Kimyasal türler arası etkileşimler", "Maddenin hâlleri", "Karışımlar"],
+      "Biyoloji": ["Canlıların ortak özellikleri", "Hücre", "Canlı sınıflandırma", "Hücre zarından madde geçişi", "Enerji dönüşümleri"],
+      "Tarih": ["Tarih bilimi", "İlk ve orta çağlarda dünya", "İlk Türk-İslam devletleri", "Osmanlı kuruluş dönemi", "Köklü değişimler"],
+      "Coğrafya": ["Doğa ve insan", "Harita bilgisi", "İklim ve bitki örtüsü", "Beşeri dağılış", "Ekonomik faaliyetler"]
+    },
+    "10": {
+      "Matematik": ["Sayma ve olasılık", "Fonksiyonlar", "Polinomlar", "İkinci derece eşitsizlikler", "Dönüşüm geometrisi", "Uzay geometriye giriş"],
+      "Türkçe": ["Divan edebiyatı", "Halk edebiyatı", "Tanzimat ve Servet-i Fünun", "Roman/öykü incelemesi", "Eleştirel okuma"],
+      "Fizik": ["Vektörler", "Bağıl hareket", "Newton yasaları", "Tork ve denge", "Basit harmonik hareket", "Dalga mekaniği"],
+      "Kimya": ["Modern atom teorisi", "Gazlar", "Sıvı çözeltiler", "Tepkimelerde enerji", "Tepkime denklemleri", "Kimya her yerde"],
+      "Biyoloji": ["Sinir sistemi", "Destek ve hareket", "Duyu organları", "Sindirim ve dolaşım", "Üreme ve gelişim"],
+      "Tarih": ["Osmanlı'da yükselme", "Coğrafi keşifler", "I. Dünya Savaşı", "Kurtuluş Savaşı", "Atatürk İlke ve İnkılapları"],
+      "Coğrafya": ["Dünya'nın yapısı", "Doğal afetler", "Nüfus politikaları", "Küreselleşme", "Doğal kaynaklar"]
+    },
+    "11": {
+      "Matematik": ["Trigonometri", "Analitik geometri (doğru)", "Fonksiyonlarda uygulamalar", "Denklem-eşitsizlik sistemleri", "Çember ve daire", "Uzay geometri"],
+      "Türkçe": ["Tanzimat sonrası edebiyat", "Millî edebiyat", "Cumhuriyet dönemi", "Edebî türler karşılaştırması", "İnceleme yazma"],
+      "Fizik": ["İş-güç-enerji", "Atışlar", "Elektrik ve manyetizma", "Alternatif akım", "Çembersel hareket", "Atom fiziği"],
+      "Kimya": ["Tepkimelerde hız", "Denge", "Asitler ve bazlar", "Derişimler", "Elektrokimya", "Organik kimyaya giriş"],
+      "Biyoloji": ["Genden proteine", "Kalıtım", "Canlılarda enerji dönüşümü", "Bitki biyolojisi", "Ekoloji"],
+      "Coğrafya": ["Ekonomik kalkınma", "Bölgeler arası gelişmişlik", "Küresel sorunlar", "Türkiye'de tarım ve sanayi", "Ulaşım ve turizm"],
+      "Felsefe": ["Felsefeye giriş", "Bilgi felsefesi", "Ahlak felsefesi", "Sanat felsefesi", "Din felsefesi"]
+    },
+    "12": {
+      "Matematik": ["Üstel-logaritmik fonksiyonlar", "Diziler", "Trigonometrik denklemler", "Limit ve süreklilik", "Türev", "İntegral"],
+      "Türkçe": ["Modern dünya edebiyatı", "1950 sonrası Türk edebiyatı", "Eleştiri türleri", "Karşılaştırmalı edebiyat", "Bilimsel metin yazma"],
+      "Fizik": ["Kütle çekim ve çembersel hareket", "Dalga optiği", "Atom ve çekirdek fiziği", "Modern fizik", "Fotoelektrik olay"],
+      "Kimya": ["Organik kimya", "Polimerler", "Kimya ve enerji", "Sanayi kimyasalları", "Çevre kimyası"],
+      "Biyoloji": ["Sinir ve endokrin sistem", "Bağışıklık sistemi", "Üreme sistemi", "Genden popülasyona", "Biyoteknoloji"],
+      "Tarih": ["XX. yüzyıl tarihi", "II. Dünya Savaşı", "Soğuk savaş dönemi", "Türk dış politikası", "Çağdaş dünya tarihi"],
+      "Coğrafya": ["Küresel iklim değişimi", "Kaynak sürdürülebilirliği", "Kentleşme", "Enerji politikaları", "Gelecek senaryoları"]
+    }
+  }
+}
+
