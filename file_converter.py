@@ -27,6 +27,16 @@ _KNOWN = _PNG_JPG | {".pdf", ".txt"}
 _ALIASES = {"text": "txt", "jpeg": "jpg"}
 
 
+def _pdf_lib():
+    """PyMuPDF modülü — yeni 'pymupdf' adı öncelikli, eski 'fitz' yedeği."""
+    try:
+        import pymupdf
+        return pymupdf
+    except ImportError:
+        import fitz  # PyMuPDF < 1.24'ün eski (deprecated) adı
+        return fitz
+
+
 @dataclass
 class ConvertResult:
     """Dönüşüm sonucu — UI mesajı + üretilen dosyalar."""
@@ -58,8 +68,8 @@ def _same_format(src_ext: str, target: str) -> bool:
 def detect_ocr_needed(pdf_path) -> bool:
     """PDF'de metin katmanı yoksa (taranmış) OCR gerekir → True."""
     try:
-        import fitz
-        doc = fitz.open(str(pdf_path))
+        pdf_lib = _pdf_lib()
+        doc = pdf_lib.open(str(pdf_path))
         try:
             for page in doc:
                 if page.get_text().strip():
@@ -74,8 +84,8 @@ def detect_ocr_needed(pdf_path) -> bool:
 
 def _pdf_to_text(src: Path, out: Path) -> ConvertResult:
     try:
-        import fitz
-        doc = fitz.open(str(src))
+        pdf_lib = _pdf_lib()
+        doc = pdf_lib.open(str(src))
     except Exception as exc:
         return ConvertResult(
             False, f"PDF açılamadı — bozuk veya şifreli olabilir. ({exc})")
@@ -114,8 +124,8 @@ def _pdf_to_text(src: Path, out: Path) -> ConvertResult:
 def _pdf_to_images(src: Path, out_dir: Path, fmt: str = "png") -> ConvertResult:
     """PDF → görseller; sayfa sırası korunur, çokluysa zip'lenir."""
     try:
-        import fitz
-        doc = fitz.open(str(src))
+        pdf_lib = _pdf_lib()
+        doc = pdf_lib.open(str(src))
     except Exception as exc:
         return ConvertResult(
             False, f"PDF açılamadı — bozuk veya şifreli olabilir. ({exc})")

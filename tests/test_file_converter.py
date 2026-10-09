@@ -7,6 +7,16 @@ from pathlib import Path
 from file_converter import convert_file, detect_ocr_needed
 
 
+def _pdf_lib():
+    """PyMuPDF — 'pymupdf' öncelikli, eski 'fitz' yedeği (deprecated)."""
+    try:
+        import pymupdf
+        return pymupdf
+    except ImportError:
+        import fitz
+        return fitz
+
+
 def _make_png(path: Path) -> Path:
     from PIL import Image
     Image.new("RGB", (32, 32), (200, 40, 40)).save(path, "PNG")
@@ -20,7 +30,7 @@ def _make_jpg(path: Path) -> Path:
 
 
 def _make_pdf(path: Path, pages: int = 1, text: str = "Merhaba dunya") -> Path:
-    import fitz
+    fitz = _pdf_lib()
     doc = fitz.open()
     for i in range(pages):
         page = doc.new_page()
@@ -99,7 +109,7 @@ class PdfConversionTests(unittest.TestCase):
 
     def test_detect_ocr_needed_on_image_only_pdf(self):
         # Metin katmanı olmayan (yalnız görsel içeren) PDF → OCR gerekir
-        import fitz
+        fitz = _pdf_lib()
         png = _make_png(self.dir / "only.png")
         img_doc = fitz.open()
         page = img_doc.new_page(width=200, height=200)
