@@ -211,12 +211,32 @@ def safe_path_under_root(path: str | os.PathLike, root: str | os.PathLike) -> Pa
         return None
 
 
+def safe_file_target(path: str | os.PathLike, root: str | os.PathLike) -> Path | None:
+    """Belirli bir kökün altında kalan dosya veya dizin yolunu doğrular."""
+    candidate = safe_path_under_root(path, root)
+    if candidate is None:
+        return None
+    return candidate
+
+
+SETTINGS_LOCK = threading.RLock()
+PROFILE_LOCK = threading.RLock()
+
+
 def settings_load() -> dict:
-    return _settings_load()
+    with SETTINGS_LOCK:
+        return _settings_load()
 
 
 def settings_save(s: dict):
-    _settings_save(s)
+    with SETTINGS_LOCK:
+        _settings_save(s)
+
+
+def profile_update(path: str, value):
+    """Profil değişiklikleri için tekil kilit sağlar; eşzamanlı yazımları önler."""
+    with PROFILE_LOCK:
+        PROFILE.set(path, value)
 
 
 def _machine_short() -> str:
@@ -706,13 +726,19 @@ def speak_async(text: str, finance_mode: bool = False):
     def _run():
         with _tts_lock:
             try:
-                tmp_dir = Path(tempfile.gettempdir()) / "jarvis_secure"
+                tmp_root = Path(tempfile.gettempdir())
+                tmp_dir = safe_file_target(tmp_root / "jarvis_secure", tmp_root)
+                if tmp_dir is None:
+                    logger.warning("[TTS] Geçersiz geçici dosya hedefi; ses üretimi atlandı.")
+                    return
                 tmp_dir.mkdir(parents=True, exist_ok=True)
-                tmp = str(tmp_dir / "jarvis_tts_v9.mp3")
-                tmp_path = Path(tmp)
+                tmp_path = safe_file_target(tmp_dir / "jarvis_tts_v9.mp3", tmp_root)
+                if tmp_path is None:
+                    logger.warning("[TTS] Geçici dosya hedef doğrulanamadı; ses üretimi atlandı.")
+                    return
                 voice = VOICE_MAP.get(SETTINGS.get("voice_gender", "male"), "tr-TR-AhmetNeural")
                 rate = "-10%" if finance_mode else SETTINGS.get("tts_speed", "+0%")
-                asyncio.run(_tts_save(clean_text, tmp, voice, rate))
+                asyncio.run(_tts_save(clean_text, str(tmp_path), voice, rate))
                 if tmp_path.exists():
                     os.chmod(tmp_path, 0o600)
                 if PYGAME_OK:
@@ -1134,7 +1160,10 @@ def whatsapp_send(phone: str, message: str) -> str:
 # ══════════════════════════════════════════════════════════════════════════
 def create_desktop_shortcut():
     try:
-        desktop = Path.home() / "Desktop"
+        home_root = Path.home()
+        desktop = safe_file_target(home_root / "Desktop", home_root)
+        if desktop is None:
+            return "Masaüstü hedefi doğrulanamadı; güvenlik kuralı nedeniyle istek reddedildi."
         script = Path(__file__).resolve()
         bat = desktop / "JARVIS_v9.bat"
         safe_dir = str(script.parent).replace('"', '""')
@@ -5376,14 +5405,14 @@ class JarvisWindow(QMainWindow):
         name_match = re.search(r"(?:benim adım|adım)\s+([A-Za-zÇçĞğİıÖöŞşÜü]+)", text, re.IGNORECASE)
         if name_match:
             name = name_match.group(1).capitalize()
-            PROFILE.set("name", name)
+            profile_update("name", name)
             return f"Harika, sizi {name} olarak kaydettim. Bundan sonra {name} diye hitap edeceğim."
 
         if "resmi konuş" in t or "formal" in t:
-            PROFILE.set("preferred_tone", "formal")
+            profile_update("preferred_tone", "formal")
             return "Bundan sonra resmi konuşacağım, Efendim."
         if "samimi konuş" in t or "casual" in t or "rahat konuş" in t:
-            PROFILE.set("preferred_tone", "casual")
+            profile_update("preferred_tone", "casual")
             return "Anlaşıldı, samimi tonda devam edelim."
 
         note_add = re.search(r"not ekle\s+(.+?):\s*(.+)", text, re.IGNORECASE)

@@ -22,3 +22,5 @@ build/
 dist/
 Output/
 
+# temp test artifacts (commit messages, scratch output)
+tests/_*.txt
