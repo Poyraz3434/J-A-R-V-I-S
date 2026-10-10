@@ -17,8 +17,8 @@ from __future__ import annotations
 import datetime
 import json
 import os
-import time
 import threading
+import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
@@ -212,7 +212,7 @@ class ServiceExecutor:
                 raise RuntimeError(f"AI chat hatası: {exc}")
 
     def _run_web(self, action: str, params: dict) -> str:
-        from services.web_automation import open_url, interact
+        from services.web_automation import interact, open_url
         if action == "open_url":
             return open_url(params.get("url", ""))
         elif action == "interact":
@@ -221,7 +221,12 @@ class ServiceExecutor:
         raise ValueError(f"web_automation: bilinmeyen action: {action}")
 
     def _run_computer(self, action: str, params: dict) -> str:
-        from services.computer_control import click_screen, type_text, capture_screen, analyze_screen
+        from services.computer_control import (
+            analyze_screen,
+            capture_screen,
+            click_screen,
+            type_text,
+        )
         if action == "click":
             return click_screen(int(params.get("x", 0)), int(params.get("y", 0)))
         elif action == "type":

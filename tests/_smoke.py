@@ -1,11 +1,16 @@
-import os, sys, time
+import os
+import sys
+import time
 from pathlib import Path
+
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from PySide6.QtWidgets import QApplication
 from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication
+
 app = QApplication.instance() or QApplication([])
 import jarvis_v10
+
 win = jarvis_v10.JarvisWindow()
 win.show()
 QTest.qWait(800)
@@ -26,12 +31,14 @@ print("checks:", checks)
 assert all(checks.values()), checks
 # Merkezi widget StatusBorderWidget mi?
 from status_border import StatusBorderWidget
+
 assert isinstance(win.centralWidget(), StatusBorderWidget), type(win.centralWidget())
 print("central=StatusBorderWidget OK")
 # Simülasyon: ATLAS aç/kapat (Özellik 6 dışlayıcı)
 win._toggle_atlas(True)
 QTest.qWait(300)
 from window_manager import ActiveWindow
+
 assert win._window_manager.active is ActiveWindow.ATLAS
 assert win.atlas_enabled
 assert not win.isVisible()

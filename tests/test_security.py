@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import services.database as database
 from services.browser import _open_allowed
 from services.computer_control import (
     edit_text_file,
@@ -10,10 +11,15 @@ from services.computer_control import (
     preview_text_edit,
     undo_last_text_edit,
 )
-from services.database import db_get_messages, db_get_reminders, db_init, db_new_session, db_save_msg
+from services.database import (
+    db_get_messages,
+    db_get_reminders,
+    db_init,
+    db_new_session,
+    db_save_msg,
+)
 from services.verification import CommandVerifier
 from services.web_automation import _validate_url
-import services.database as database
 
 
 class SecurityRegressionTests(unittest.TestCase):

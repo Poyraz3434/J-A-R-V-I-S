@@ -1,16 +1,20 @@
 ﻿import sys
+
 sys.path.insert(0, r"f:\Software\JARVİS")
 # GERÇEK ekran (offscreen DEĞİL) — fade/opacity gerçek platformda doğrulanır
-from PySide6.QtWidgets import QApplication
 from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication
+
 app = QApplication.instance() or QApplication([])
 import jarvis_v10
+
 win = jarvis_v10.JarvisWindow()
 win.show()
 QTest.qWait(700)
 win._toggle_atlas(True)
 QTest.qWait(700)          # fade-in denemesi gerçek ekranda
 from window_manager import ActiveWindow
+
 assert win._window_manager.active is ActiveWindow.ATLAS
 win._toggle_atlas(False)
 QTest.qWait(700)          # dönüş fade'i

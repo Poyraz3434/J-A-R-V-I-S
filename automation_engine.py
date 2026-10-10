@@ -5,14 +5,13 @@ import difflib
 import threading
 import time
 import urllib.parse
-from urllib.parse import urlparse
 from enum import Enum
+from urllib.parse import urlparse
 
 from PySide6.QtCore import QObject, Signal
 
-from screen_watcher import ScreenWatcher
-
 from logger_setup import logger
+from screen_watcher import ScreenWatcher
 
 # ── Site → URL eşlemesi ─────────────────────────────────────────────────────
 SITE_URLS: dict[str, str] = {
@@ -178,8 +177,8 @@ class AutomationEngine(QObject):
 
         from selenium import webdriver
         from selenium.webdriver.chrome.options import Options
-        from webdriver_manager.chrome import ChromeDriverManager
         from selenium.webdriver.chrome.service import Service
+        from webdriver_manager.chrome import ChromeDriverManager
 
         opts = Options()
         # Görünür tarayıcı (headless değil)

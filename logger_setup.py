@@ -1,7 +1,7 @@
 import logging
 import re
-from pathlib import Path
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 from config import LOG_FILE
 

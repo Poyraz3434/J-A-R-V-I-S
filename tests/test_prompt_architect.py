@@ -2,7 +2,9 @@
 import unittest
 
 from prompt_architect import (
-    build_fallback_prompt, checklist_quality, generate_prompt,
+    build_fallback_prompt,
+    checklist_quality,
+    generate_prompt,
     is_prompt_request,
 )
 

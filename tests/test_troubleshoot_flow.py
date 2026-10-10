@@ -2,7 +2,11 @@
 import unittest
 
 from troubleshoot_flow import (
-    FlowState, Solution, TriedEntry, TroubleshootFlow, is_dangerous,
+    FlowState,
+    Solution,
+    TriedEntry,
+    TroubleshootFlow,
+    is_dangerous,
 )
 
 SRC = "https://example.com/kaynak"

@@ -278,7 +278,11 @@ def maybe_show_permissions_guide(parent=None, settings=None,
         if settings is not None and settings.get("macos_guide_shown"):
             return False
         from PySide6.QtWidgets import (
-            QDialog, QDialogButtonBox, QLabel, QTextEdit, QVBoxLayout,
+            QDialog,
+            QDialogButtonBox,
+            QLabel,
+            QTextEdit,
+            QVBoxLayout,
         )
         dlg = QDialog(parent)
         dlg.setWindowTitle("JARVIS — macOS İzinleri (İlk Çalıştırma)")

@@ -29,6 +29,7 @@ from typing import Callable
 
 from logger_setup import logger
 
+
 # ── Eylem kategorileri ────────────────────────────────────────────────────
 class ActionCategory(str, Enum):
     FILE_DELETE     = "file_delete"
@@ -152,7 +153,9 @@ class PermissionManager:
                 return True
             except ImportError:
                 try:
-                    from PyQt5.QtWidgets import QApplication  # noqa: F401 — alternatif Qt binding
+                    from PyQt5.QtWidgets import (
+                        QApplication,  # noqa: F401 — alternatif Qt binding
+                    )
                     return True
                 except ImportError:
                     return False
@@ -242,15 +245,36 @@ class PermissionManager:
             try:
                 # Qt import (mevcut uygulamanın kullandığı hangisi ise)
                 try:
-                    from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit
                     from PySide6.QtCore import Qt
+                    from PySide6.QtWidgets import (
+                        QDialog,
+                        QHBoxLayout,
+                        QLabel,
+                        QPushButton,
+                        QTextEdit,
+                        QVBoxLayout,
+                    )
                 except ImportError:
                     try:
-                        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit
                         from PyQt6.QtCore import Qt
+                        from PyQt6.QtWidgets import (
+                            QDialog,
+                            QHBoxLayout,
+                            QLabel,
+                            QPushButton,
+                            QTextEdit,
+                            QVBoxLayout,
+                        )
                     except ImportError:
-                        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit  # noqa: F401
                         from PyQt5.QtCore import Qt  # noqa: F401
+                        from PyQt5.QtWidgets import (  # noqa: F401
+                            QDialog,
+                            QHBoxLayout,
+                            QLabel,
+                            QPushButton,
+                            QTextEdit,
+                            QVBoxLayout,
+                        )
 
                 is_high_risk = category in HIGH_RISK_CATEGORIES
                 risk_color = "#ff4444" if is_high_risk else "#ff8800"
@@ -333,8 +357,8 @@ class PermissionManager:
 
         # Qt ana thread kontrolü
         try:
-            from PySide6.QtWidgets import QApplication
             from PySide6.QtCore import QMetaObject, Qt
+            from PySide6.QtWidgets import QApplication
             app = QApplication.instance()
             if app and threading.current_thread() is not threading.main_thread():
                 # Ana thread'e gönder

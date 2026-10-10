@@ -7,7 +7,6 @@ import math
 import operator
 import re
 
-
 _BINARY_OPERATORS = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,

@@ -1,16 +1,19 @@
 """Run the repository's standard tests, syntax checks, and GUI smoke test."""
 from __future__ import annotations
 
-import os
 import argparse
-from pathlib import Path
+import os
 import subprocess
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from services.packaging_validation import validate_frozen_layout, validate_source_package
+from services.packaging_validation import (
+    validate_frozen_layout,
+    validate_source_package,
+)
 
 
 def check_syntax() -> int:

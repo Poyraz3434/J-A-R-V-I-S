@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import re
 
-
 _CONTEXT_REQUEST = re.compile(
     r"^\s*(?:geçmiş bağlamıyla|gecmis baglamiyla)\s*:\s*(.*?)\s*$",
     re.IGNORECASE,

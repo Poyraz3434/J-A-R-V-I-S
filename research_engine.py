@@ -433,8 +433,9 @@ def _ddg_search(
 ) -> list:
     """DuckDuckGo HTML sonucu → [Source]; hata/engel → []."""
     try:
-        from bs4 import BeautifulSoup
         from urllib.parse import parse_qs, quote, unquote, urlparse
+
+        from bs4 import BeautifulSoup
     except ImportError:
         logger.warning("[Research] bs4 yok — arama devre dışı.")
         return []

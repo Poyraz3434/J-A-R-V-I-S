@@ -12,6 +12,7 @@ from config import (
     GROQ_API_KEY,
     GROQ_MODEL,
 )
+from intent_detection import requires_atlas
 from logger_setup import logger
 from services.ai_client import (
     LOW_BANDWIDTH_AI_TIMEOUT_SECONDS,
@@ -21,7 +22,6 @@ from services.ai_client import (
     gemini_grounded_search,
 )
 from services.ai_intent import AIRequestType, classify_ai_request
-from intent_detection import requires_atlas
 
 
 class AIEngine:

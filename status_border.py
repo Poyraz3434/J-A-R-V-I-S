@@ -24,8 +24,13 @@ import math
 from enum import Enum
 
 from PySide6.QtCore import (
-    QEasingCurve, QObject, QRectF, Qt,
-    QVariantAnimation, QTimer, Signal,
+    QEasingCurve,
+    QObject,
+    QRectF,
+    Qt,
+    QTimer,
+    QVariantAnimation,
+    Signal,
 )
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QVBoxLayout, QWidget

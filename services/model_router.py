@@ -15,12 +15,13 @@ from __future__ import annotations
 
 import json
 import os
-import time
 import threading
+import time
 from enum import Enum
 from typing import Iterator
 
 from logger_setup import logger
+
 
 # ── Görev tipleri ──────────────────────────────────────────────────────────
 class TaskType(str, Enum):
@@ -420,15 +421,18 @@ class ModelRouter:
         return f"Görsel analiz başarısız. Son hata: {last_error}"
 
     def _vision_gemini(self, path, b64, url, question, model, system):
-        import google.generativeai as genai
         from pathlib import Path
+
+        import google.generativeai as genai
         key = os.environ.get("JARVIS_GEMINI_API_KEY", "")
         if not key:
             raise RuntimeError("Gemini key yok")
         genai.configure(api_key=key)
         gmodel = genai.GenerativeModel(model_name=model, system_instruction=system or "Görsel analiz et.")
         if b64:
-            import PIL.Image, io
+            import io
+
+            import PIL.Image
             img = PIL.Image.open(io.BytesIO(bytes.fromhex("")))
             img = PIL.Image.open(Path(path))
             resp = gmodel.generate_content([question, img])

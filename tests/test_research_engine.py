@@ -10,8 +10,13 @@ from PySide6.QtWidgets import QApplication
 
 import research_engine
 from research_engine import (
-    MODES, ResearchEngine, Source, compute_budget, parse_requested_pages,
-    requires_research, resolve_pages,
+    MODES,
+    ResearchEngine,
+    Source,
+    compute_budget,
+    parse_requested_pages,
+    requires_research,
+    resolve_pages,
 )
 from research_ui import RoundCountdownWidget, should_show_countdown
 

@@ -13,103 +13,178 @@ v9 Yenilikleri:
   • Güçlü exception handling tüm API bağlantıları için
 """
 
-import sys, os, json, sqlite3, datetime, threading, time, math, random
+import asyncio
+import datetime
 import importlib.util
-import smtplib, subprocess, platform, shutil, urllib.parse, urllib.request
-import asyncio, re, tempfile
+import json
+import math
+import os
+import platform
+import random
+import re
+import shutil
+import smtplib
+import sqlite3
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+import urllib.parse
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
 from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from pathlib import Path
 
+from automation_engine import AutomationEngine
 from config import (
-    DB_PATH, STYLE_PATH, CONTACTS_FILE, PDF_STORE, PROFILE_FILE,
-    GROQ_API_KEY, GROQ_MODEL, GEMINI_API_KEY, GEMINI_MODEL, OWM_API_KEY,
-    SMTP_USER, SMTP_PASS, EPSON_EMAIL,
     APP_DISPLAY_VERSION,
-    safe_read_json, safe_write_json
+    CONTACTS_FILE,
+    DB_PATH,
+    EPSON_EMAIL,
+    GEMINI_API_KEY,
+    GEMINI_MODEL,
+    GROQ_API_KEY,
+    GROQ_MODEL,
+    OWM_API_KEY,
+    PDF_STORE,
+    PROFILE_FILE,
+    SMTP_PASS,
+    SMTP_USER,
+    STYLE_PATH,
+    safe_read_json,
+    safe_write_json,
 )
+from curriculum import (
+    curriculum_context,
+    estimate_grade,
+    is_education_query,
+    subject_of,
+    verify_answer,
+)
+from device_prefs import (
+    get_local_ip,
+    get_machine_id,
+    load_device_pref,
+    save_device_pref,
+)
+from file_converter import convert_file
+from intent_detection import requires_atlas
 from logger_setup import logger
-from services.ai_engine import AIEngine as _ServiceAIEngine
+from overlay_ui import AtlasOverlay
+from platform_service import get_platform_service, maybe_show_permissions_guide
+from presentation_builder import PresentationResult, build_presentation
+from prompt_architect import build_fallback_prompt, generate_prompt, is_prompt_request
+from research_engine import MODES, get_research_engine, parse_requested_pages
+from research_ui import RoundCountdownWidget, should_show_countdown
 from services.ai_client import (
     create_gemini_client,
     create_groq_client,
     gemini_grounded_search,
 )
-from services.data_backup import create_backup, restore_backup
+from services.ai_engine import AIEngine as _ServiceAIEngine
 from services.ai_intent import AIRequestType, classify_ai_request
-from services.local_context import extract_context_query, format_local_context
-from services.performance import detect_low_resource_mode
-from services.offline_commands import handle_offline_command
-from services.startup_diagnostics import format_startup_diagnostics
-from services.user_data import (
-    LongMemory,
-    settings_load as _settings_load,
-    settings_save as _settings_save,
-)
-from services.database import (
-    db_init, db_new_session, db_save_msg, db_get_sessions, db_get_messages,
-    db_search_messages, db_clear_session, db_clear_all_history,
-    db_claim_due_reminders, db_log_finance,
-)
+from services.answer_feedback import format_answer_feedback
 from services.atlas_memory import add_fact as atlas_memory_add_fact
 from services.atlas_memory import build_context as atlas_memory_build_context
 from services.atlas_memory import delete_source as atlas_memory_delete_source
 from services.atlas_memory import index_document as atlas_memory_index_document
 from services.atlas_memory import list_sources as atlas_memory_list_sources
 from services.atlas_memory import search as atlas_memory_search
-from services.answer_feedback import format_answer_feedback
-from services.routines import add_daily_briefing, claim_due_routines, list_routines, remove_routine
-from services.task_planner import build_task_plan, format_task_plan
-from services.skill_registry import create_builtin_skill_registry
-from services.task_center import StepStatus, TaskCenter, TaskStatus
-from services.permissions import (
-    ActionCategory,
-    CATEGORY_LABELS,
-    PermissionManager,
-    category_for_request,
+from services.browser import find_local_item, open_google, open_youtube, system_summary
+from services.computer_control import (
+    active_window_title,
+    analyze_screen,
+    capture_screen,
+    click_screen,
+    edit_text_file,
+    list_open_windows,
+    move_mouse,
+    open_allowed_app,
+    open_windows_settings,
+    preview_text_edit,
+    system_processes,
+    type_text,
+    undo_last_text_edit,
 )
-from services.update_check import check_for_update, is_update_check_configured
+from services.currency import (
+    convert_currency as _convert_currency,
+)
+from services.currency import (
+    format_currency_board as _format_currency_board,
+)
+from services.currency import (
+    get_exchange_rates as _get_exchange_rates,
+)
+from services.currency import (
+    is_currency_query as _is_currency_query,
+)
+from services.currency import (
+    parse_currency_query as _parse_currency_query,
+)
+from services.data_backup import create_backup, restore_backup
+from services.database import (
+    db_claim_due_reminders,
+    db_clear_all_history,
+    db_clear_session,
+    db_get_messages,
+    db_get_sessions,
+    db_init,
+    db_log_finance,
+    db_new_session,
+    db_save_msg,
+    db_search_messages,
+)
+from services.local_context import extract_context_query, format_local_context
 from services.network import (
     DEFAULT_HTTP_TIMEOUT,
     HTTP_SESSION,
     get_weather,
 )
-from services.currency import (
-    convert_currency as _convert_currency,
-    format_currency_board as _format_currency_board,
-    get_exchange_rates as _get_exchange_rates,
-    is_currency_query as _is_currency_query,
-    parse_currency_query as _parse_currency_query,
+from services.offline_commands import handle_offline_command
+from services.performance import detect_low_resource_mode
+from services.permissions import (
+    CATEGORY_LABELS,
+    ActionCategory,
+    PermissionManager,
+    category_for_request,
 )
-from services.verification import CommandVerifier
-from services.verification import VerificationResult
-from services.browser import find_local_item, open_google, open_youtube, system_summary
-from services.computer_control import (
-    active_window_title, analyze_screen, capture_screen, click_screen, list_open_windows,
-    edit_text_file, move_mouse, open_allowed_app, open_windows_settings, system_processes,
-    preview_text_edit, type_text, undo_last_text_edit,
+from services.routines import (
+    add_daily_briefing,
+    claim_due_routines,
+    list_routines,
+    remove_routine,
+)
+from services.skill_registry import create_builtin_skill_registry
+from services.startup_diagnostics import format_startup_diagnostics
+from services.task_center import StepStatus, TaskCenter, TaskStatus
+from services.task_planner import build_task_plan, format_task_plan
+from services.update_check import check_for_update, is_update_check_configured
+from services.user_data import (
+    LongMemory,
+)
+from services.user_data import (
+    settings_load as _settings_load,
+)
+from services.user_data import (
+    settings_save as _settings_save,
+)
+from services.verification import CommandVerifier, VerificationResult
+from services.web_automation import (
+    close_marketplace_browser,
+    marketplace_search,
 )
 from services.web_automation import (
-    close_marketplace_browser, interact as web_interact, marketplace_search,
+    interact as web_interact,
+)
+from services.web_automation import (
     open_url as open_web_url,
 )
-from automation_engine import AutomationEngine
-from overlay_ui import AtlasOverlay
 from status_border import AppState, StatusBorderWidget, StatusColorController
-from window_manager import ActiveWindow, WindowManager
-from intent_detection import requires_atlas
-from device_prefs import get_local_ip, get_machine_id, load_device_pref, save_device_pref
-from research_engine import MODES, get_research_engine, parse_requested_pages
-from research_ui import RoundCountdownWidget, should_show_countdown
 from troubleshoot_flow import FlowState, create_flow
-from file_converter import convert_file
-from presentation_builder import PresentationResult, build_presentation
-from curriculum import (curriculum_context, estimate_grade, is_education_query,
-                        subject_of, verify_answer)
-from prompt_architect import build_fallback_prompt, generate_prompt, is_prompt_request
-from platform_service import get_platform_service, maybe_show_permissions_guide
+from window_manager import ActiveWindow, WindowManager
 
 REMOTE_CONTEXT_ENABLED = os.getenv("JARVIS_SHARE_CONTEXT", "").strip().lower() in {
     "1", "true", "yes", "on"
@@ -122,20 +197,46 @@ def _optional_module_available(module_name: str) -> bool:
         return False
 
 # ── Qt (PySide6 is required by the application and its UI modules) ────────
-from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QScrollArea, QFrame, QFileDialog,
-    QListWidget, QListWidgetItem, QTextEdit, QComboBox,
-    QSystemTrayIcon, QMenu, QDialog, QDialogButtonBox, QMessageBox,
-    QTabWidget
-)
-from PySide6.QtCore import Qt, QTimer, QThread, Signal as pyqtSignal, QPointF, QUrl
+from PySide6.QtCore import QPointF, Qt, QThread, QTimer, QUrl
+from PySide6.QtCore import Signal as pyqtSignal
 from PySide6.QtGui import (
-    QPainter, QPen, QColor, QBrush, QRadialGradient, QFont,
-    QIcon, QPalette, QAction, QDesktopServices,
+    QAction,
+    QBrush,
+    QColor,
+    QDesktopServices,
+    QFont,
+    QIcon,
+    QPainter,
+    QPalette,
+    QPen,
+    QRadialGradient,
 )
+from PySide6.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QSystemTrayIcon,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 try:
-    from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
+    from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 except ImportError:
     QMediaPlayer = QAudioOutput = None
 PYQT_OK = True
@@ -4907,7 +5008,7 @@ class JarvisWindow(QMainWindow):
                     "Görev planı boş yanıt nedeniyle durduruldu; kalan adımlar çalıştırılmadı."
                 )
             return
-            
+
         if self._stream_bubble is not None:
             self._stream_bubble.message_label.setText(text)
             self._stream_bubble = None

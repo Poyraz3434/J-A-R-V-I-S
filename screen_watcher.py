@@ -5,7 +5,6 @@ import re
 from dataclasses import dataclass
 from typing import Iterable
 
-
 VERIFICATION_KEYWORDS = (
     "doğrulama", "robot değilim", "captcha", "i am not a robot",
     "i'm not a robot", "verify you are human", "verify you are a human",

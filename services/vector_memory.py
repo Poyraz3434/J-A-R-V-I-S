@@ -265,8 +265,9 @@ def _fallback_search(query: str, n: int) -> list[dict]:
     ChromaDB yoksa SQLite üzerinde basit anahtar kelime araması.
     """
     try:
-        from config import DB_PATH
         import sqlite3
+
+        from config import DB_PATH
         keywords = [w for w in query.lower().split() if len(w) > 2]
         if not keywords:
             return []

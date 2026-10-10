@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import json
 import os
-from contextlib import closing
-from pathlib import Path, PurePosixPath
 import shutil
 import sqlite3
 import tempfile
 import time
 import zipfile
+from contextlib import closing
+from pathlib import Path, PurePosixPath
 
 from config import (
     APP_DATA_DIR,

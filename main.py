@@ -2,7 +2,6 @@
 
 import sys
 
-
 if __name__ == "__main__":
     if "--self-test" in sys.argv:
         from services.packaging_validation import frozen_runtime_check

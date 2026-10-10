@@ -1,6 +1,6 @@
-import sqlite3
 import datetime
 import re
+import sqlite3
 import time
 
 from config import DB_PATH

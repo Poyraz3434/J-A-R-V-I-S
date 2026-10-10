@@ -359,7 +359,9 @@ _PROCESS_RE = _re.compile(r"(?:process|süreç|program)[:\s]+([A-Za-z0-9_.\-]+)"
 def _default_apply(solution, os_name: str):
     """Bilinen yardımcılarla uygula; eşleşmeyen adımlar manuel olarak kalır."""
     from services.troubleshoot_agent import (
-        clear_temp_files, kill_process_by_name, restart_service,
+        clear_temp_files,
+        kill_process_by_name,
+        restart_service,
     )
     executed, auto = [], 0
     for step in solution.steps:
