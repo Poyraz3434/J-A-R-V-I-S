@@ -53,6 +53,23 @@ olduğunda kurucuyu hızlı yeniden üretir). Çıktı:
 `Output\JARVIS-Setup-<sürüm>.exe`. Gerçek HTTPS güncelleme denetimini elle
 doğrulamak için: `python tests\_update_e2e.py`.
 
+## Sürüm çıkarma (release.py)
+Tam zinciri tek komutla yürütür: kapı (ruff + test paketi) → `config.py`
+sürümü → `installer.iss` senkronu → CHANGELOG bölümü (notlar + önceki etiketten
+bu yana girilen commit'lerin otomatik listesi) → git commit → EXE + kurucu
+derlemesi → `v<sürüm>` etiketi. Etiket yalnızca tüm zincir başarılıysa atılır;
+kapı geçilmeden hiçbir dosya yazılmaz.
+```powershell
+python release.py --bump patch                    # 10.0.0 → 10.0.1
+python release.py --bump minor --notes "..."      # notla birlikte
+python release.py --version 11.0.0                # açık hedef sürüm
+python release.py --bump patch --skip-build       # derlemesiz (commit + etiket)
+python release.py --bump patch --dry-run          # önizleme, hiçbir şey yazmaz
+```
+Korumalar: hedef sürüm mevcut sürüme eşitse veya `v<sürüm>` etiketi zaten
+varsa durur. Türkçe `--notes` için kodlama güvenliği istenirse `--notes-file`
+kullanın. Yayınlama: `git push --follow-tags`.
+
 ## AI sağlayıcıları
 Gündelik sohbet Groq ile başlar. Bilgi sorularında Gemini önce denenir; güncel
 bilgi/haber veya web araması isteklerinde Google Search grounding kullanılır ve
