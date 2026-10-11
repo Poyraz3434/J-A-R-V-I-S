@@ -16,6 +16,9 @@ speedtest-cli>=2.1,<3
 PyMuPDF>=1.24,<2
 pywhatkit>=5.4,<6
 playwright>=1.48,<2
+# ATLAS YouTube otomasyonu (automation_engine._get_driver) — eksikse özellik lazy import ile zarif hata verir
+selenium>=4.25,<5
+webdriver-manager>=4,<6
 
 # Finance and desktop control
 yfinance>=0.2.40,<1

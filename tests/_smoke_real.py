@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 
 sys.path.insert(0, r"f:\Software\JARVİS")
 # GERÇEK ekran (offscreen DEĞİL) — fade/opacity gerçek platformda doğrulanır
