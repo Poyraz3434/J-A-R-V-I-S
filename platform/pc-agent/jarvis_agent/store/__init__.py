@@ -1,0 +1,1 @@
+"""Kalıcı veri katmanı (SQLite)."""

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="42%" r="65%">
+      <stop offset="0%" stop-color="#93c5fd"/>
+      <stop offset="55%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#0b1220"/>
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#030712"/>
+  <circle cx="64" cy="60" r="34" fill="none" stroke="#60a5fa" stroke-opacity="0.55" stroke-width="3"/>
+  <circle cx="64" cy="60" r="24" fill="url(#g)"/>
+  <circle cx="64" cy="60" r="10" fill="#dbeafe"/>
+  <text x="64" y="108" text-anchor="middle" font-family="Segoe UI, sans-serif"
+        font-size="20" font-weight="700" fill="#93c5fd" letter-spacing="2">J.VIS</text>
+</svg>

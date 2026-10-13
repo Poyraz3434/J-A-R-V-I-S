@@ -1,0 +1,217 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ════════════════════════════════════════════════════════════════════
+   TEMA MOTORU
+   Arka plan rengi: <html data-bg="red|green|blue"> ile değişir.
+   Düşünme/yanıt animasyonu: YALNIZCA [data-logo-state] kapsam
+   içindeki logo öğelerinde geçerlidir (kesin renk kuralı).
+   ════════════════════════════════════════════════════════════════════ */
+
+:root,
+:root[data-bg="blue"] {
+  --accent-rgb: 59 130 246;          /* blue-500 */
+  --accent-soft-rgb: 147 197 253;   /* blue-300 */
+  --bg-page: #04070f;
+  --bg-glow-1: rgb(30 58 138 / 0.28);
+  --bg-glow-2: rgb(59 130 246 / 0.14);
+}
+:root[data-bg="red"] {
+  --accent-rgb: 239 68 68;           /* red-500 */
+  --accent-soft-rgb: 252 165 165;   /* red-300 */
+  --bg-page: #0f0405;
+  --bg-glow-1: rgb(153 27 27 / 0.30);
+  --bg-glow-2: rgb(239 68 68 / 0.15);
+}
+:root[data-bg="green"] {
+  --accent-rgb: 34 197 94;           /* green-500 */
+  --accent-soft-rgb: 134 239 172;   /* green-300 */
+  --bg-page: #040b07;
+  --bg-glow-1: rgb(20 83 45 / 0.30);
+  --bg-glow-2: rgb(34 197 94 / 0.15);
+}
+
+:root {
+  --panel: rgb(255 255 255 / 0.035);
+  --panel-strong: rgb(255 255 255 / 0.06);
+  --border: rgb(var(--accent-rgb) / 0.22);
+  --border-strong: rgb(var(--accent-rgb) / 0.45);
+  --text-main: rgb(226 232 240);
+  --text-dim: rgb(148 163 184);
+  --text-faint: rgb(100 116 139);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Yumuşak yay-şekilli arka plan parıltıları (referans ekran görünümü) */
+#root::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(52rem 30rem at 50% -12%, var(--bg-glow-1), transparent 65%),
+    radial-gradient(40rem 26rem at 50% 112%, var(--bg-glow-2), transparent 60%);
+  z-index: 0;
+}
+
+/* ── Ortak parçalar ─────────────────────────────────────────────────── */
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  backdrop-filter: blur(8px);
+}
+
+.panel-hover:hover {
+  border-color: var(--border-strong);
+  background: var(--panel-strong);
+}
+
+.btn-accent {
+  background: rgb(var(--accent-rgb) / 0.18);
+  border: 1px solid rgb(var(--accent-rgb) / 0.5);
+  color: rgb(var(--accent-soft-rgb));
+  transition: background 150ms ease, border-color 150ms ease, transform 100ms ease;
+}
+.btn-accent:hover:not(:disabled) {
+  background: rgb(var(--accent-rgb) / 0.3);
+  border-color: rgb(var(--accent-rgb) / 0.8);
+}
+.btn-accent:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn-accent:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+input,
+select {
+  color: var(--text-main);
+}
+
+/* Kaydırma çubukları */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgb(var(--accent-rgb) / 0.35);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ORTA LOGO — durum animasyonu YALNIZCA bu kapsamda
+   #logo-stage[data-logo-state] → halkalar ve çekirdek
+   ════════════════════════════════════════════════════════════════════ */
+
+#logo-stage {
+  --logo-rgb: var(--accent-rgb);
+  --logo-pulse: 1;
+  --logo-spin-duration: 24s;
+  --logo-filter: none;
+}
+
+#logo-stage[data-logo-state="thinking"] {
+  --logo-rgb: 168 85 247; /* mor — düşünme */
+  --logo-spin-duration: 6s;
+  --logo-filter: saturate(1.25);
+  animation: logo-hue 1.6s ease-in-out infinite alternate;
+}
+
+#logo-stage[data-logo-state="speaking"] {
+  --logo-rgb: 250 204 21; /* altın — konuşma */
+  --logo-spin-duration: 10s;
+  --logo-filter: saturate(1.2);
+  animation: logo-breathe 0.9s ease-in-out infinite alternate;
+}
+
+#logo-stage[data-logo-state="offline"] {
+  --logo-rgb: 71 85 105; /* gri — çevrimdışı */
+  --logo-spin-duration: 60s;
+}
+
+@keyframes logo-hue {
+  from { filter: hue-rotate(0deg) saturate(1.15); }
+  to   { filter: hue-rotate(55deg) saturate(1.35); }
+}
+
+@keyframes logo-breathe {
+  from { transform: scale(1); filter: brightness(1); }
+  to   { transform: scale(1.045); filter: brightness(1.25); }
+}
+
+.logo-ring {
+  border: 2px solid rgb(var(--logo-rgb) / 0.55);
+  border-top-color: rgb(var(--logo-rgb) / 0.15);
+  border-radius: 9999px;
+  position: absolute;
+  inset: 0;
+}
+
+.logo-ring.r1 { animation: logo-spin var(--logo-spin-duration) linear infinite; }
+.logo-ring.r2 {
+  inset: 9%;
+  border-style: dashed;
+  animation: logo-spin var(--logo-spin-duration) linear infinite reverse;
+  border-width: 1.5px;
+}
+.logo-ring.r3 {
+  inset: 20%;
+  border-width: 1px;
+  animation: logo-spin calc(var(--logo-spin-duration) * 1.6) linear infinite;
+}
+
+@keyframes logo-spin {
+  to { transform: rotate(360deg); }
+}
+
+.logo-core {
+  position: absolute;
+  inset: 32%;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 50% 38%,
+      rgb(var(--logo-rgb) / 0.9),
+      rgb(var(--logo-rgb) / 0.25) 62%,
+      transparent 78%);
+  box-shadow:
+    0 0 28px rgb(var(--logo-rgb) / 0.45),
+    inset 0 0 18px rgb(var(--logo-rgb) / 0.5);
+  animation: logo-core-pulse 3.2s ease-in-out infinite;
+}
+
+@keyframes logo-core-pulse {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+
+/* Sohbet balonu yazıyor göstergesi */
+.typing-dot {
+  animation: typing-bounce 0.9s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30%           { transform: translateY(-4px); opacity: 1; }
+}

@@ -1,0 +1,291 @@
+/**
+ * useJarvis — uygulamanın tek merkezi state hook'u.
+ *
+ * Bağlantı stratejisi (offline gereksinimi):
+ * 1. Birincil: /ws/stats WebSocket'i. Mesaj gelirse online=true.
+ * 2. WS koparsa: REST /api/system/stats ile 5 sn'de bir denenir;
+ *    cevap gelirse online kalır (transport düşmüş olsa da).
+ * 3. İkisi de başarısızsa: online=false → kartlarda "--" gösterilir.
+ * 4. WS her kapandığında üstel geri çekmeyle (3s → 15s) yeniden bağlanır.
+ */
+import { useCallback, useEffect, useRef, useState } from "react";
+import { api } from "../api/client";
+import type {
+  AppSettings,
+  CameraStatus,
+  ChatMessage,
+  HealthInfo,
+  SystemStats,
+  WeatherInfo,
+} from "../types";
+
+const OFFLINE_NOTE =
+  "JARVIS backend çevrimdışı. Bağlantı yeniden kurulana kadar bazı özellikler kullanılamaz.";
+
+export function useJarvis() {
+  const [online, setOnline] = useState(false);
+  const [stats, setStats] = useState<SystemStats | null>(null);
+  const [health, setHealth] = useState<HealthInfo | null>(null);
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [sending, setSending] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
+
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [weather, setWeather] = useState<WeatherInfo | null>(null);
+
+  const [camera, setCamera] = useState<CameraStatus>({
+    status: "off",
+    width: null,
+    height: null,
+  });
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [cameraBusy, setCameraBusy] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
+  const wsRef = useRef<WebSocket | null>(null);
+  const retryRef = useRef(0);
+  const onlineRef = useRef(false);
+  const offlineNoteShown = useRef(false);
+
+  const markOnline = useCallback((value: boolean) => {
+    if (value) offlineNoteShown.current = false;
+    onlineRef.current = value;
+    setOnline(value);
+  }, []);
+
+  const wsConnect = useCallback(() => {
+    const proto = location.protocol === "https:" ? "wss:" : "ws:";
+    const ws = new WebSocket(`${proto}//${location.host}/ws/stats`);
+    wsRef.current = ws;
+    ws.onmessage = (ev) => {
+      try {
+        setStats(JSON.parse(ev.data) as SystemStats);
+        markOnline(true);
+        retryRef.current = 0;
+      } catch {
+        /* bozuk kare — yoksay */
+      }
+    };
+    ws.onclose = () => {
+      markOnline(false);
+      retryRef.current = Math.min(retryRef.current + 1, 5);
+      setTimeout(wsConnect, Math.min(3000 * retryRef.current, 15000));
+    };
+    ws.onerror = () => ws.close();
+  }, [markOnline]);
+
+  useEffect(() => {
+    wsConnect();
+    return () => wsRef.current?.close();
+  }, [wsConnect]);
+
+  // REST yedeği: WS yoklarken de online tespit edebilsin
+  useEffect(() => {
+    const id = setInterval(async () => {
+      if (onlineRef.current && wsRef.current?.readyState === WebSocket.OPEN) return;
+      try {
+        const s = await api.stats();
+        setStats(s);
+        markOnline(true);
+      } catch {
+        markOnline(false);
+      }
+    }, 5000);
+    return () => clearInterval(id);
+  }, [markOnline]);
+
+  // Sağlık bilgisi (LLM sağlayıcı adı vb.)
+  useEffect(() => {
+    const tick = async () => {
+      try {
+        setHealth(await api.health());
+      } catch {
+        /* offline */
+      }
+    };
+    tick();
+    const id = setInterval(tick, 15000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    api
+      .conversation()
+      .then((r) => setMessages(r.messages))
+      .catch(() => {});
+    api
+      .settings()
+      .then((s) => setSettings(s))
+      .catch(() => {});
+  }, []);
+
+  // Tema rengini <html data-bg> uygula
+  useEffect(() => {
+    if (settings?.background_color) {
+      document.documentElement.dataset.bg = settings.background_color;
+    }
+  }, [settings?.background_color]);
+
+  // Çevrimdışı bilgi mesajı (istemci tarafında, DB'ye yazılmaz)
+  useEffect(() => {
+    if (!online && !offlineNoteShown.current) {
+      offlineNoteShown.current = true;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `offline-${Date.now()}`,
+          role: "system",
+          content: OFFLINE_NOTE,
+          created_at: new Date().toISOString(),
+        },
+      ]);
+    }
+  }, [online]);
+
+  // ── Hava durumu: yükle + 10 dk'da bir yenile ──
+  const refreshWeather = useCallback(async (force = false) => {
+    try {
+      setWeather(await api.weather(force));
+    } catch {
+      setWeather({ available: false, reason: "backend_offline", fetched_at: "" });
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshWeather();
+    const id = setInterval(() => refreshWeather(), 10 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [refreshWeather, settings?.city]);
+
+  // ── Sohbet eylemleri ──
+  const sendMessage = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed || sending) return;
+      setSending(true);
+      setLastError(null);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `local-${Date.now()}`,
+          role: "user",
+          content: trimmed,
+          created_at: new Date().toISOString(),
+        },
+      ]);
+      try {
+        const r = await api.sendChat(trimmed);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `reply-${Date.now()}`,
+            role: "assistant",
+            content: r.reply,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      } catch (e) {
+        setLastError(e instanceof Error ? e.message : "Bilinmeyen hata");
+      } finally {
+        setSending(false);
+      }
+    },
+    [sending]
+  );
+
+  const clearConversation = useCallback(async () => {
+    setMessages([]);
+    try {
+      await api.clearConversation();
+    } catch {
+      /* offline — backend gelince tekrar denenebilir */
+    }
+  }, []);
+
+  const reloadConversation = useCallback(async () => {
+    try {
+      const r = await api.conversation();
+      setMessages(r.messages);
+    } catch {
+      /* offline */
+    }
+  }, []);
+
+  // ── Ayarlar ──
+  const saveSettings = useCallback(
+    async (patch: { background_color?: string; city?: string }) => {
+      const updated = await api.updateSettings(patch);
+      setSettings(updated);
+      return updated;
+    },
+    []
+  );
+
+  // ── Kamera ──
+  const refreshCamera = useCallback(async () => {
+    try {
+      setCamera(await api.cameraStatus());
+    } catch {
+      /* offline */
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshCamera();
+  }, [refreshCamera]);
+
+  const toggleCamera = useCallback(async () => {
+    setCameraBusy(true);
+    setCameraError(null);
+    try {
+      setCamera(
+        camera.status === "live" ? await api.cameraClose() : await api.cameraOpen()
+      );
+    } catch (e) {
+      setCameraError(e instanceof Error ? e.message : "Kamera hatası");
+    } finally {
+      setCameraBusy(false);
+    }
+  }, [camera.status]);
+
+  const capturePhoto = useCallback(async () => {
+    setCameraBusy(true);
+    setCameraError(null);
+    try {
+      const r = await api.cameraCapture();
+      setPhoto(r.image);
+    } catch (e) {
+      setCameraError(e instanceof Error ? e.message : "Çekim hatası");
+    } finally {
+      setCameraBusy(false);
+    }
+  }, []);
+
+  return {
+    online,
+    stats,
+    health,
+    messages,
+    sending,
+    lastError,
+    settings,
+    weather,
+    camera,
+    photo,
+    cameraBusy,
+    cameraError,
+    setPhoto,
+    refreshWeather,
+    sendMessage,
+    clearConversation,
+    reloadConversation,
+    saveSettings,
+    toggleCamera,
+    capturePhoto,
+    refreshCamera,
+  };
+}
+
+export type JarvisState = ReturnType<typeof useJarvis>;
+
