@@ -1,142 +1,44 @@
-# J.A.R.V.I.S. v10.0
-
-Python + PySide6 ile yazılmış, masaüstünde çalışan yapay zekâ asistanı.
-**Tek codebase** ile hem Windows hem macOS'ta çalışır (ayrı sürüm yok; platform farkı runtime'da soyutlama katmanıyla yönetilir). Bilgisayarı klavye/fare seviyesinde kontrol edebilen **ATLAS** alt sistemine sahiptir.
-
----
-
-## Öne Çıkan Özellikler
-
-| # | Özellik | Kısa Açıklama |
-|---|---|---|
-| 1 | **Otomatik Sunum** | Konudan .pptx üretir; mümkün değilse Canva, o da değilse PNG slayt seti (fallback zinciri) |
-| 2 | **Tam macOS Desteği** | `PlatformService` soyutlaması: Windows/macOS alt servisleri, izin rehberi, tek codebase |
-| 3 | **ATLAS Arıza Giderme** | Sorunu web'de araştırır (Flash/Pro), çözümü otomatik uygular, doğrular; "hayır" deyince sıradakini dener |
-| 4 | **Akıllı Niyet Algılama** | Eylem talebi ↔ bilgi sorusu ayrımı; ATLAS'ı otomatik açma ayarı (IP + makine kimliğiyle kalıcı) |
-| 5 | **Dosya Dönüştürücü** | JPG/PNG ↔ PDF, PDF → görsel/metin (OCR tespiti ile), doğal dille komut |
-| 6 | **Karşılıklı Dışlayıcı Pencereler** | `WindowManager`: ATLAS açıkken JARVIS gizlenir, kapanınca geri döner |
-| 7 | **2026 Estetiği** | Oval köşeler + tüm kenarı saran ince durum çerçevesi: kırmızı/mavi/yeşil (12 sn)/idle, yumuşak geçiş |
-| 8 | **Müfredat Asistanı** | 1-12. sınıf müfredat referansı (`data/curriculum.json`) + 3 sn doğrulama + seviyeye uygun dil |
-| 9 | **Prompt Mimarı** | Başka AI'lara verilecek, 8 maddelik kalite kontrol listesinden geçen detaylı prompt üretimi |
-| 10 | **4 Kademeli Arama** | Flash Lite / Flash / Pro / Deep Research; kaynak güvenilirlik analizi, yuvarlak geri sayım |
-
-Ayrıca: sesli komut ("Hey Jarvis" uyandırma), günlük brifing, hava durumu, finans takibi, düşük internet modu, otomatik güncelleme denetimi, sistem tepsisi entegrasyonu.
-
----
-
-## Kurulum
-
-### a) Kurulum dosyasıyla (Windows — önerilen)
-1. `Output\JARVIS-Setup-10.0.0.exe` dosyasını çalıştırın.
-2. Kurulum dizinine (EXE'nin yanına) bir `.env` dosyası koyun (aşağıya bakın).
-3. Masaüstü kısayolundan başlatın.
-
-### b) Kaynak koddan
-```powershell
-# Python 3.11+ gerekir
+J.A.R.V.I.S. v10.0 "Apex" — Stark Industries 2026
+"The pinnacle of desktop AI architecture, pushing the boundaries of autonomous systems."
+Engineered with the immense power of Python and PySide6, operating seamlessly across both Windows and macOS through a single codebase, this next-generation assistant is built to continuously evolve, scale, and expand its capabilities without limits.
+🔥 About the Project: Peak Engineering
+J.A.R.V.I.S. v10.0 "Apex" goes far beyond a standard desktop application; it is a masterclass in software craftsmanship combining AI automation, hardware control, self-healing troubleshooting, and futuristic 2026 UI aesthetics into a single unified ecosystem. 
+Featuring advanced intent recognition, a revolutionary 4-tier search engine, and the ATLAS subsystem capable of controlling your computer at the keyboard/mouse level, this version sets a brand-new standard in the developer world. And best of all: This is only the beginning! Its ever-evolving architecture ensures it will continuously grow, adapt, and learn new superpowers. 
+🚀 Key Features & Visual Architecture
+•	2026 Interface Aesthetics & Dynamic Glow Border: Traditional clunky top bars are completely replaced by an intelligent edge-hugging border that shifts colors dynamically—Red for errors, Blue/Orange for active processing, and a stunning Green for success/ready states (held for precisely 12 seconds or instantly overridden by new user input). Complete with rounded corners and smooth HSL transitions for an ultimate Stark OS / Siri experience. 
+•	4-Tier Smart Search Engine: Choose between Flash Lite, Flash, Pro, and Deep Research modes to get instant answers or deep technical/academic analysis backed by strict source reliability filtering. 
+•	ATLAS Subsystem & Automated Troubleshooting: A robust self-healing mechanism designed to research software glitches on Windows/macOS via the web, execute fixes automatically, and verify outcomes. 
+•	Live Exchange & Financial HUD (Kur Paneli): Real-time tracking of currency rates (USD/TRY, EUR/TRY, GBP/TRY) seamlessly integrated into the dashboard. 
+•	Advanced Quick-Access Menus (+ and ⚙): One-click access to ATLAS, Troubleshooting, Daily Briefings, PDF/File Converters, Speedtest tools, and device-persistent preferences backed by IP + Machine ID validation. 
+•	Education & Curriculum Support: Full curriculum reference for grades 1–12, providing grade-appropriate explanations paired with a 3-second internal self-validation check.
+🛠️ Technical Architecture & Modularity
+The project is built on an impeccably clean, modular, and maintainable Python codebase:
+•	main.py / jarvis_v10.py: Core entry point and asynchronous QThread worker management. 
+•	window_manager.py: Flawless mutually exclusive state machine managing transitions between JARVIS and ATLAS.
+•	status_border.py: Dynamic border color controller and smart 12-second timer integration. 
+•	research_engine.py: 4-tier search execution and reliability filtering engine. 
+•	troubleshoot_flow.py: ATLAS error-resolution and automated testing loops.
+•	device_prefs.py: Persistent configuration storage utilizing IP and permanent Machine ID. 
+•	platform_service.py: Clean runtime abstraction layer handling OS-specific logic for Windows and macOS.
+📥 Installation & Quick Start
+a) Running from Source Code
+To run the project locally, open your terminal and execute:
+Python 3.11+ required
 python -m venv .venv
-.\.venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
+..venv\Scripts\activate # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 python main.py
-```
-
-### c) Paketleme / dağıtım derlemesi
-Ayrıntılar için **[BUILD.md](BUILD.md)** dosyasına bakın. Kısa yol:
-
-```powershell
-python build_installer.py   # sürüm senkronu + PyInstaller + Inno Setup (tek komut)
-```
-
----
-
-## Yapılandırma (`.env`)
-
-`.env` dosyası proje kökünde (paketlenmiş uygulamada EXE'nin yanında) bulunur. **Asla bundle'a gömülmez** — anahtarlar derleme çıktısına sızmaz.
-
-| Anahtar | Zorunlu? | Açıklama |
-|---|---|---|
-| `JARVIS_GROQ_API_KEY` veya `GROQ_API_KEY` | ✅ | Ana LLM sağlayıcısı (Groq) |
-| `JARVIS_GEMINI_API_KEY` veya `GEMINI_API_KEY` | — | Yedek LLM (Gemini) |
-| `JARVIS_GROQ_MODEL` | — | Varsayılan: `openai/gpt-oss-20b` |
-| `JARVIS_OWM_API_KEY` | — | Hava durumu (OpenWeatherMap) |
-| `JARVIS_SMTP_USER` / `JARVIS_SMTP_PASS` | — | E-posta gönderimi |
-| `JARVIS_EPSON_EMAIL` | — | Epson Connect yazdırma adresi |
-| `JARVIS_CITY` | — | Varsayılan: `Tuzla,TR` |
-| `JARVIS_UPDATE_URL` | — | Otomatik güncelleme denetimi için "latest release" API adresi |
-| `JARVIS_VERSION` | — | Sürümü geçersiz kılar (test için) |
-
-Kullanıcı verileri `~/.jarvis/` altında tutulur (loglar, ayarlar, hafıza, kişiler) — izinleri `0600/0700` ile kısıtlanır.
-
----
-
-## Kullanım (özet)
-
-- **Sohbet:** Metin kutusuna yazın veya mikrofonla konuşun; "Hey Jarvis" uyandırma kelimesi desteklenir.
-- **"+" menüsü:** ATLAS, Arıza (Windows/macOS) ve diğer görevler en üsttedir.
-- **Ayarlar (⚙, sağ alt):** ATLAS otomatik açma, güncelleme denetimi, arama "Filtre sonucunu göster" vb. tercihler — IP + makine kimliğiyle cihaz bazında kalıcıdır.
-- **Arama modları (alt çubuk):** Normal / ⚡ Flash Lite / ⚡ Flash / ⭐ Pro / 🔬 Deep Research. Rapor uzunluğu istenirse (`"3 sayfa istiyorum"`) mod varsayılanı geçersiz kılınır.
-- **ATLAS:** Açıkken JARVIS penceresi gizlenir; sorunuzu ATLAS penceresinden de sorabilirsiniz. Arıza akışında tehlikeli işlemler (disk, sistem dosyaları…) için ek onay ister.
-
----
-
-## Mimari Haritası
-
-| Modül | Sorumluluk |
-|---|---|
-| `main.py` → `jarvis_v10.py` | Giriş noktası; ana pencere, sohbet akışı, arka plan işçileri (QThread) |
-| `window_manager.py` | ATLAS ↔ JARVIS karşılıklı dışlayıcı pencere state machine |
-| `status_border.py` | `StatusBorderWidget` + `StatusColorController` (idle/busy/error/success çerçevesi, 12 sn QTimer) |
-| `overlay_ui.py` | ATLAS overlay arayüzü (arıza akışı, arama modeli seçici) |
-| `intent_detection.py` | Türkçe niyet sınıflandırma (eylem talebi ↔ bilgi sorusu) |
-| `device_prefs.py` | IP + makine kimliği bazlı kalıcı tercih deposu |
-| `research_engine.py` + `research_ui.py` | 4 kademeli arama motoru, kaynak güvenilirlik analizi, yuvarlak geri sayım |
-| `troubleshoot_flow.py` | Arıza giderme state machine (araştır → uygula → test → onay/tükenme) |
-| `automation_engine.py` + `atlas_bridge.py` + `screen_watcher.py` | ATLAS'ın klavye/fare/ekran otomasyon altyapısı |
-| `presentation_builder.py` | Sunum fallback zinciri (.pptx → Canva → PNG) |
-| `file_converter.py` | PDF/JPG/PNG/TXT dönüşümleri (OCR tespiti dahil) |
-| `platform_service.py` | Windows/macOS platform soyutlaması + macOS izin rehberi |
-| `curriculum.py` + `data/curriculum.json` | 1-12 müfredat veri katmanı + 3 sn doğrulama |
-| `prompt_architect.py` | Prompt Mimarı (8 maddelik kalite checklist'i) |
-| `config.py` | Tek sürüm kaynağı (`APP_VERSION`), .env yükleme, özel dosya yardımcıları |
-| `logger_setup.py` | Merkezi loglama |
-| `services/` | `agent_core`, `model_router`, `network`, `update_check`, `troubleshoot_agent`, `permissions`, `packaging_validation`, … |
-
-### Tasarım ilkeleri
-- Platforma özgü kod yalnızca `platform_service.py` ve alt servislerinde izole edilir; ana mantık platformdan bağımsız kalır.
-- Uzun işler (LLM, arama, sunum, dönüştürme) hep `QThread` işçilerinde çalışır — UI asla bloklanmaz.
-- Yıkıcı işlemlerden önce ekstra onay (arıza akışındaki `is_dangerous` deseni).
-- Sürüm tek kaynak: `config.APP_VERSION` → pencere başlığı, sistem promptu, kurucu adı otomatik senkron.
-
----
-
-## Test
-
-```powershell
-# Tam birim test paketi (242 test)
-.\.venv\Scripts\python.exe -m unittest discover -s tests
-
-# Lint kapısı
-.\.venv\Scripts\python.exe -m ruff check .
-
-# Elle çalıştırılan duman / uçtan uca testler
-.\.venv\Scripts\python.exe tests\_smoke.py        # offscreen UI duman testi
-.\.venv\Scripts\python.exe tests\_smoke_real.py    # gerçek ekran duman testi
-.\.venv\Scripts\python.exe tests\_update_e2e.py    # gerçek HTTPS güncelleme akışı
-```
-
-Paketlenmiş EXE kendi kendini doğrulayabilir: `JARVIS.exe --self-test` (bkz. `services/packaging_validation.py`).
-
----
-
-## Dokümantasyon
-- **[BUILD.md](BUILD.md)** — paketleme, dağıtım, `.env` yerleşimi, derleme sonrası kontrol listesi
-- **[MEGA_PROMPT.md](MEGA_PROMPT.md)** — 10 özelliğin geliştirme prompt'ları (AI'lara verilmek üzere)
-- **[CHANGELOG.md](CHANGELOG.md)** — sürüm geçmişi
-
-## Geliştirme Kuralları
-1. Her değişiklikten sonra `ruff check .` ve `unittest discover` yeşil olmalı.
-2. PEP8, tip belirteçleri, kısa docstring'ler, `try/except` + loglama.
-3. Platform farkı `platform_service.py` içinden yönetilir.
-4. Yeni özellik, `tests/test_*.py` ile birlikte gelmeli.
+b) Configuration (.env)
+Create a .env file in the project root directory (or next to the compiled executable) to securely configure your API keys:
+JARVIS_GROQ_API_KEY=your_groq_api_key_here
+JARVIS_GEMINI_API_KEY=your_gemini_api_key_here
+JARVIS_CITY=your_city_here
+🔮 Future Vision & Roadmap (An Evolving Ecosystem)
+J.A.R.V.I.S. v10.0 Apex is not a destination—it is the strongest milestone in our ongoing artificial intelligence journey. Upcoming updates include:
+•	Full-scale autonomous voice command processing and multi-modal visual perception depth.
+•	Native local protocol integrations with smart home automation hardware.
+•	Cloud-synchronized memory layers and a modular plugin marketplace.
+This project is a testament to passion, coding discipline, and the determination to build the future today. It continues to evolve, expand, and shatter limits!
+🌐 Note on Language Support: Currently, J.A.R.V.I.S. v10.0 Apex features full native Turkish language support. In upcoming project iterations, we are expanding our global reach to include multi-language options such as English, Italian, French, and more!
 
 
