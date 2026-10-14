@@ -9,3 +9,13 @@ pydantic==2.10.5
 pytest==8.3.4
 pytest-asyncio==0.25.2
 opencv-python==4.10.0.84
+
+# Faz 3 — ses katmanı (hepsi opsiyonel; eksikse ses modu düzgün biçimde devre dışı)
+sounddevice==0.5.1
+numpy==2.2.1
+edge-tts==7.0.0            # TTS (çevrimiçi, yerel alternatif: JARVIS_TTS_ENGINE=pyttsx3)
+faster-whisper==1.1.1     # STT (yerel, Türkçe model)
+
+# Faz 4 — relay bağlantısı (hatırlatıcılar)
+websockets==14.1
+pynput==1.7.7

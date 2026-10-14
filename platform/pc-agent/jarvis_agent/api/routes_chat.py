@@ -1,34 +1,23 @@
-"""Yazılı sohbet ucu — LLM + araç (tool) çağrı döngüsü."""
+"""Yazılı sohbet ucu — ortak çekirdek (chat/service.run_chat) + sesli moda geçiş.
+
+Gereklim 5.4: yazılı modda "Jarvis sesli moda geç" algılanırsa "Tamamdır"
+der ve sesli moda geçer.
+"""
 from __future__ import annotations
 
-import json
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from ..chat.service import run_chat
 from ..core import counters
 from ..store import database
-from ..llm.provider import ProviderError
-from ..llm.tools import TOOL_SPECS, execute_tool
+from ..voice.textmatch import is_enter_voice_command
 
 logger = logging.getLogger("jarvis.api.chat")
 
 router = APIRouter()
-
-MAX_TOOL_HOPS = 3
-
-SYSTEM_PROMPT = (
-    "Sen J.A.R.V.I.S adını taşıyan kişisel bir asistansın. "
-    "Kullanıcınla doğal, saygılı ve akıcı Türkçe konuş; gerektiğinde "
-    "'efendim' gibi kibar bir üslup kullanabilirsin. Yanıtlarını kısa ve öz tut. "
-    "Sistem saati, hava durumu ve bilgisayar durumu gibi bilgilere yalnızca "
-    "sana verilen araçlar (get_system_stats, get_current_time, get_weather) "
-    "aracılığıyla erişebilirsin; bu bilgileri asla tahmin etme. "
-    "Kullanıcı dosya silme, bilgisayarı kapatma gibi yıkıcı bir işlem isterse "
-    "onay olmadan yapamayacağını açıkça belirt; shell komutu çalıştırma "
-    "yetkin yoktur."
-)
 
 
 class ChatRequest(BaseModel):
@@ -41,75 +30,46 @@ async def chat(payload: ChatRequest, request: Request) -> dict:
     if not message:
         raise HTTPException(status_code=422, detail="Mesaj boş olamaz.")
 
-    database.add_message("user", message)
     counters.bump_command_count()
-    database.audit("chat.message", detail=message[:200])
+    voice = getattr(request.app.state, "voice", None)
 
-    provider = request.app.state.llm
-    monitor = request.app.state.stats
-
-    # Geçmişi DB'den kur (az önce eklenen kullanıcı mesajı dahil).
-    llm_messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
-    for row in database.get_messages(limit=24):
-        llm_messages.append({"role": row["role"], "content": row["content"]})
-
-    used_tools: list[str] = []
-    final: str | None = None
-    try:
-        for _hop in range(MAX_TOOL_HOPS):
-            result = await provider.chat(llm_messages, TOOL_SPECS)
-            if not result.tool_calls:
-                if result.content:
-                    final = result.content.strip()
-                break
-            llm_messages.append(
-                {
-                    "role": "assistant",
-                    "content": result.content or "",
-                    "tool_calls": [
-                        {"id": tc.id, "name": tc.name, "arguments": tc.arguments}
-                        for tc in result.tool_calls
-                    ],
-                }
+    # ── "Jarvis sesli moda geç" — LLM'e gitmeden yerelde yakalanır ──
+    if voice is not None and is_enter_voice_command(message):
+        database.add_message("user", message)
+        database.audit("chat.voice_enter_command", detail=message[:200])
+        if voice.status().get("mic_available"):
+            database.add_message("assistant", "Tamamdır.")
+            voice.start_voice_mode(
+                reason="text_command",
+                response="Sesli moddayım efendim, sizi dinliyorum.",
             )
-            for tc in result.tool_calls:
-                output = await execute_tool(tc.name, tc.arguments, monitor=monitor)
-                used_tools.append(tc.name)
-                llm_messages.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tc.id,
-                        "name": tc.name,
-                        "content": json.dumps(output, ensure_ascii=False),
-                    }
-                )
-    except ProviderError as exc:
-        logger.warning("LLM çağrısı başarısız: %s", exc)
+            return {
+                "reply": "Tamamdır.",
+                "used_tools": [],
+                "provider": "local-command",
+                "model": "voice-gate",
+                "error": False,
+                "voice_mode": True,
+            }
         reply = (
-            "Üzgünüm efendim, yanıt alamadım. Yapay zekâ sağlayıcısına şu an "
-            "ulaşılamıyor gibi görünüyor."
+            "Üzgünüm efendim, bu cihazda mikrofon bulunamadığı için sesli moda "
+            "geçemiyorum."
         )
         database.add_message("assistant", reply)
-        database.audit("chat.error", detail=str(exc)[:400])
         return {
             "reply": reply,
             "used_tools": [],
-            "provider": provider.name,
-            "model": provider.model,
-            "error": True,
+            "provider": "local-command",
+            "model": "voice-gate",
+            "error": False,
+            "voice_mode": False,
         }
 
-    if not final:
-        final = (
-            "Üzgünüm, şu an isteğinize anlamlı bir yanıt oluşturamadım. "
-            "Lütfen tekrar dener misiniz?"
-        )
+    result = await run_chat(
+        message,
+        request.app.state.llm,
+        request.app.state.stats,
+        source="text",
+    )
+    return result
 
-    database.add_message("assistant", final)
-    return {
-        "reply": final,
-        "used_tools": used_tools,
-        "provider": provider.name,
-        "model": provider.model,
-        "error": False,
-    }

@@ -21,13 +21,16 @@ from .api import (
     routes_conversation,
     routes_settings,
     routes_system,
+    routes_voice,
 )
+from .api import routes_reminders
 from .api import ws as ws_module
 from .camera.service import CameraService
 from .core import counters
 from .core.stats import StatsMonitor
 from .llm import build_provider
 from .store import database
+from .voice.service import VoiceService
 
 logger = logging.getLogger("jarvis.app")
 
@@ -61,17 +64,24 @@ def create_app() -> FastAPI:
     app.state.stats = StatsMonitor()
     app.state.camera = CameraService()
     app.state.llm = build_provider()
+    app.state.voice = VoiceService(app.state.llm, app.state.stats)
 
     app.include_router(routes_system.router)
     app.include_router(routes_chat.router)
     app.include_router(routes_settings.router)
     app.include_router(routes_conversation.router)
     app.include_router(routes_camera.router)
+    app.include_router(routes_voice.router)
+    app.include_router(routes_reminders.router)
     app.include_router(ws_module.router)
 
     @app.on_event("startup")
     async def _startup() -> None:
+        import asyncio
+
         app.state.stats.start()
+        # Ses servisi TTS/sohbet için ana event loop'a bağlanır (Faz 3).
+        app.state.voice.bind_loop(asyncio.get_running_loop())
         sessions = counters.bump_session_count()
         database.audit("agent.start", detail=f"oturum #{sessions}")
         provider = app.state.llm
@@ -81,9 +91,15 @@ def create_app() -> FastAPI:
             provider.name,
             provider.model,
         )
+        # Mikrofon varsayılan olarak KAPALI başlar (gizlilik: kullanıcı eylemi
+        # şart). Otomatik wake dinleme istenirse .env: JARVIS_VOICE_AUTOSTART=1
+        if config.env("JARVIS_VOICE_AUTOSTART") == "1":
+            app.state.voice.start()
+            logger.info("Ses servisi otomatik başlatıldı (JARVIS_VOICE_AUTOSTART=1)")
 
     @app.on_event("shutdown")
     async def _shutdown() -> None:
+        app.state.voice.stop()
         app.state.camera.close()
         app.state.stats.stop()
         database.audit("agent.stop")
@@ -100,10 +116,16 @@ def create_app() -> FastAPI:
 
         @app.get("/{path:path}", include_in_schema=False)
         async def serve_spa(path: str):
-            # SPA fallback: dosya varsa dosya, yoksa index.html (QR vb. rotalar için)
-            candidate = dist / path
+            # API öneki altındaki bilinmeyen yollar SPA'ya düşmemeli:
+            if path == "api" or path.startswith("api/"):
+                return JSONResponse({"detail": "Not Found"}, status_code=404)
+            # Path traversal koruması: yalnızca dist içindeki dosyalar sunulur.
+            candidate = (dist / path).resolve()
+            if not candidate.is_relative_to(dist.resolve()):
+                return JSONResponse({"detail": "Not Found"}, status_code=404)
             if candidate.is_file():
                 return FileResponse(str(candidate))
+            # SPA fallback: dosya yoksa index.html (Faz 2'de QR vb. rotalar için)
             return FileResponse(str(dist / "index.html"))
     else:
         @app.get("/", include_in_schema=False)

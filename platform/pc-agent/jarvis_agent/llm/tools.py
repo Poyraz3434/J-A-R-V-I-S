@@ -53,6 +53,56 @@ TOOL_SPECS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_reminder",
+            "description": (
+                "Kullanıcı için hatırlatıcı/alarm oluşturur. due_at daima yerel ISO "
+                "biçimindedir: YYYY-MM-DDTHH:MM:SS. 'Yarın sabah 9' gibi ifadeleri "
+                "get_current_time aracıyla öğrendiğin şimdiki zamandan hesapla."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "Hatırlatmanın içeriği (örn. 'ilaç iç')."},
+                    "due_at": {"type": "string", "description": "Yerel ISO tarih-saat: YYYY-MM-DDTHH:MM:SS"}
+                },
+                "required": ["title", "due_at"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_reminders",
+            "description": "Bekleyen ve çalan hatırlatıcıları listeler.",
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "ack_active_alarms",
+            "description": (
+                "Çalan (aktif) alarmları susturur. Kullanıcı 'tamam', 'kapat', 'dur' "
+                "gibi bir onay verdiğinde MUTLAKA bu aracı çağır."
+            ),
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "delete_reminder",
+            "description": "Bir hatırlatıcıyı kalıcı olarak siler.",
+            "parameters": {
+                "type": "object",
+                "properties": {"reminder_id": {"type": "integer"}},
+                "required": ["reminder_id"]
+            }
+        }
+    }
 ]
 
 VALID_TOOL_NAMES = {spec["function"]["name"] for spec in TOOL_SPECS}
@@ -84,4 +134,26 @@ async def execute_tool(
         # Ağ çağrısı olay döngüsünü bloklamasın:
         return await asyncio.to_thread(weather_module.get, city)
 
+    if name in ("create_reminder", "list_reminders", "delete_reminder", "ack_active_alarms"):
+        from ..reminders import service as _reminder_service
+
+        _rem = _reminder_service.SERVICE
+        if _rem is None:
+            return {"error": "hatırlatıcı servisi hazır değil"}
+        if name == "create_reminder":
+            try:
+                row = await asyncio.to_thread(
+                    _rem.create,
+                    str(arguments.get("title") or ""),
+                    str(arguments.get("due_at") or ""),
+                )
+                return {"created": row}
+            except ValueError as exc:
+                return {"error": str(exc)}
+        if name == "list_reminders":
+            return {"reminders": await asyncio.to_thread(_rem.list)}
+        if name == "delete_reminder":
+            ok = await asyncio.to_thread(_rem.delete, int(arguments.get("reminder_id") or 0))
+            return {"deleted": ok}
+        return {"acked": await asyncio.to_thread(_rem.ack_all, "voice")}
     return {"error": f"bilinmeyen araç: {name}"}

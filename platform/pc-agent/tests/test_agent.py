@@ -27,6 +27,7 @@ for var in (
     os.environ.pop(var, None)
 os.environ["JARVIS_LLM_PROVIDER"] = "mock"
 os.environ["JARVIS_CAMERA_DISABLED"] = "1"
+os.environ["JARVIS_VOICE_DISABLED"] = "1"  # testlerde gerçek mikrofon açılmaz
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -210,8 +211,105 @@ def test_provider_factory_respects_explicit_choice(monkeypatch):
 
 
 def test_system_prompt_forbids_destructive_actions():
-    from jarvis_agent.api.routes_chat import SYSTEM_PROMPT
+    from jarvis_agent.chat.service import SYSTEM_PROMPT
     lowered = SYSTEM_PROMPT.lower()
+
     assert "shell" in lowered
     assert "onay" in lowered
+
+
+# ── 6. Faz 3: Sesli mod — metin eşleştirme ve ses uçları ─────────────────────
+
+def test_normalize_turkish():
+    from jarvis_agent.voice.textmatch import normalize
+
+    assert normalize("HEY JARVİS") == "hey jarvis"
+    assert normalize("Uyan Bakalım Baba E ve Geldi!") == "uyan bakalım baba e ve geldi"
+    assert normalize("") == ""
+
+
+def test_match_phrase_wake_words():
+    from jarvis_agent.voice.textmatch import match_phrase
+
+    assert match_phrase("hey jarvis", "hey jarvis")
+    # STT hatası toleransı: "hey carvis" → jarvis fonetik düzeltmesi
+    assert match_phrase("hey carvis", "hey jarvis")
+    # Fazladan kelime içeren STT çıktısı (kayan pencere)
+    assert match_phrase("evet hey jarvis buyrun", "hey jarvis")
+    # Uzun uyandırma cümlesi
+    assert match_phrase("uyan bakalım baba eve geldi", "uyan bakalım baba eve geldi")
+    # Ilımlı hata tolere edilir
+    assert match_phrase("uyan bakalim baba eve gildi", "uyan bakalım baba eve geldi")
+
+
+def test_match_phrase_rejects_unrelated():
+    from jarvis_agent.voice.textmatch import match_phrase
+
+    assert not match_phrase("hava çok güzel today", "hey jarvis")
+    assert not match_phrase("", "hey jarvis")
+
+
+def test_is_enter_voice_command():
+    from jarvis_agent.voice.textmatch import is_enter_voice_command
+
+    assert is_enter_voice_command("Jarvis sesli moda geç")
+    assert is_enter_voice_command("sesli moda gec lutfen")
+    assert not is_enter_voice_command("hava durumu nedir")
+    assert not is_enter_voice_command("")
+
+
+def test_voice_status_shape(client):
+    resp = client.get("/api/voice/status")
+    assert resp.status_code == 200
+    body = resp.json()
+    for key in (
+        "mic", "session", "mic_available", "local_stt",
+        "clap_enabled", "clap_sensitivity", "wake_phrases", "exit_phrases",
+    ):
+        assert key in body
+
+
+def test_voice_gate_in_chat_without_mic(client):
+    """'Sesli moda geç' yazınca LLM'e gitmeden yerel yakalanır.
+
+    CI'da mikrofon olmadığından yol: kibar reddetme yanıtı ve
+    voice_mode=False. (Mikrofonlu makinede 'Tamamdır.' döner.)
+    """
+    resp = client.post("/api/chat", json={"message": "Jarvis sesli moda geç"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["provider"] == "local-command"
+    assert body["used_tools"] == []
+    # Mikrofon var/yok ikisinde de voice-gate çalışır; yanıt kaydedilir
+    assert body["reply"]
+
+
+def test_voice_settings_update(client):
+    resp = client.put(
+        "/api/voice/settings",
+        json={"clap_enabled": False, "clap_sensitivity": 12.5},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["clap_enabled"] is False
+    assert body["clap_sensitivity"] == 12.5
+
+    # Geçersiz hassasiyet reddedilir (aralık 1..20)
+    resp = client.put("/api/voice/settings", json={"clap_sensitivity": 99})
+    assert resp.status_code == 422
+
+
+def test_voice_start_without_mic_is_503(client):
+    """CI'da mikrofon yoksa /api/voice/start 503 döner (çökmez)."""
+    resp = client.post("/api/voice/start")
+    assert resp.status_code == 503
+
+
+def test_stats_stream_contains_mic_state(client):
+    """Mikrofon durumu WS istatistik akışında her zaman görünür (gereklim 5.4)."""
+    with client.websocket_connect("/ws/stats") as ws:
+        data = ws.receive_json()
+        assert "voice" in data
+        assert "mic" in data["voice"]
+
 

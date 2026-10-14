@@ -22,6 +22,10 @@ def build_stats_payload(app) -> dict:
     snap = dict(app.state.stats.snapshot())
     snap["command_count"] = counters.get_command_count()
     snap["session_count"] = counters.get_session_count()
+    # Mikrofon dinleme durumu her istatistik itmesinde taşınır (gereklim 5.4).
+    voice = getattr(app.state, "voice", None)
+    if voice is not None:
+        snap["voice"] = voice.status()
     return snap
 
 

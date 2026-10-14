@@ -130,6 +130,14 @@ def active_model() -> str:
 OWM_API_KEY = env("JARVIS_OWM_API_KEY") or env("OWM_API_KEY")
 DEFAULT_CITY = env("JARVIS_CITY", "Tuzla,TR")
 
+# ── Relay (Faz 4: hatırlatıcılar relay'de yaşar) ─────────────────────────────
+# Boş bırakılırsa hatırlatıcı modülü devre dışı kalır (yerel test kolaylığı).
+RELAY_URL = env("JARVIS_RELAY_URL")                     # ör. ws://192.168.1.10:8100
+RELAY_TOKEN = env("JARVIS_RELAY_TOKEN")
+RELAY_HTTP_URL = env("JARVIS_RELAY_HTTP_URL")           # ör. http://192.168.1.10:8100
+# Alarm kullanıcı hareketiyle susma koşulu: son X saniyede giriş varsa "duyuldu" say.
+ALARM_IDLE_ACK_SECONDS = float(env("JARVIS_ALARM_IDLE_ACK_SECONDS", "5"))
+
 # ── Arayüz varsayılanları ────────────────────────────────────────────────────
 DEFAULT_BG_COLOR = env("JARVIS_DEFAULT_BG_COLOR", "blue")
 if DEFAULT_BG_COLOR not in ALLOWED_BG_COLORS:
