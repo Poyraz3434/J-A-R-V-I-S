@@ -2,15 +2,21 @@
 
 Renk kuralı: data-logo-state yalnızca bu kapsamdadır; düşünme/yanıt
 animasyonu başka hiçbir öğeye sıçramaz (CSS de bunu garanti eder).
+
+Faz 3: mikrofon dinleme göstergesi her zaman görünür (gereklim 5.4);
+sesli oturum aktifken "Sesli Mod" bandı ve çıkış butonu gösterilir.
 */
-import type { LogoState } from "../types";
+import type { LogoState, VoiceStatus } from "../types";
 
 interface Props {
   phase: LogoState;
   onCamera: () => void;
   onMic: () => void;
   onKeyboard: () => void;
+  onExitVoiceMode: () => void;
   cameraLive: boolean;
+  voice: VoiceStatus | null;
+  voiceError: string | null;
 }
 
 const STATUS_TEXT: Record<LogoState, string> = {
@@ -20,13 +26,95 @@ const STATUS_TEXT: Record<LogoState, string> = {
   offline: "Çevrimdışı",
 };
 
-export default function CenterStage({ phase, onCamera, onMic, onKeyboard, cameraLive }: Props) {
+const MIC_LABEL: Record<string, string> = {
+  off: "Mikrofon: Kapalı",
+  wake: "Mikrofon: Uyanma bekleniyor",
+  listening: "Mikrofon: Dinliyor",
+  thinking: "Mikrofon: İşleniyor",
+  speaking: "Mikrofon: Konuşuyor",
+  error: "Mikrofon: Hata",
+};
+
+const MIC_COLOR: Record<string, string> = {
+  off: "rgb(100 116 139)",
+  wake: "rgb(59 130 246)",
+  listening: "rgb(74 222 128)",
+  thinking: "rgb(250 204 21)",
+  speaking: "rgb(59 130 246)",
+  error: "rgb(248 113 113)",
+};
+
+/** Mikrofon durumuna göre logo phase'i ve durum yazısı. */
+function voicePhase(
+  voice: VoiceStatus | null,
+  base: LogoState
+): { phase: LogoState; text: string | null } {
+  if (!voice || voice.mic === "off") return { phase: base, text: null };
+  switch (voice.mic) {
+    case "wake":
+      return { phase: "idle", text: "Listening for wake word..." };
+    case "listening":
+      return { phase: "idle", text: "Sizi dinliyorum efendim..." };
+    case "thinking":
+      return { phase: "thinking", text: "Düşünüyor..." };
+    case "speaking":
+      return { phase: "speaking", text: "Konuşuyor..." };
+    case "error":
+      return { phase: base, text: voice.error ?? "Ses hatası" };
+    default:
+      return { phase: base, text: null };
+  }
+}
+
+export default function CenterStage({
+  phase,
+  onCamera,
+  onMic,
+  onKeyboard,
+  onExitVoiceMode,
+  cameraLive,
+  voice,
+  voiceError,
+}: Props) {
+  const vp = voicePhase(voice, phase);
+  const effPhase = vp.phase;
+  const statusText = vp.text ?? STATUS_TEXT[phase];
+  const micOn = !!voice && voice.mic !== "off";
+  const voiceSession = !!voice?.session;
+  const micState = voice?.mic ?? "off";
+
   return (
     <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center">
+      {/* Sesli oturum bandı */}
+      {voiceSession && (
+        <div
+          className="mb-4 flex items-center gap-3 rounded-full border px-4 py-1.5 text-xs"
+          style={{
+            borderColor: "rgb(var(--accent-rgb) / 0.5)",
+            background: "rgb(var(--accent-rgb) / 0.08)",
+            color: "rgb(var(--accent-soft-rgb))",
+          }}
+        >
+          <span
+            className="h-2 w-2 animate-pulse rounded-full"
+            style={{ background: MIC_COLOR[micState] ?? MIC_COLOR.off }}
+          />
+          Sesli Mod
+          <button
+            type="button"
+            onClick={onExitVoiceMode}
+            className="btn-accent rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+            title="Sesli moddan çık"
+          >
+            Çıkış
+          </button>
+        </div>
+      )}
+
       {/* Logo sahnesi */}
       <div
         id="logo-stage"
-        data-logo-state={phase}
+        data-logo-state={effPhase}
         className="relative mb-7 aspect-square w-44 select-none sm:w-56 md:w-64"
       >
         <div className="logo-ring r1" />
@@ -49,15 +137,36 @@ export default function CenterStage({ phase, onCamera, onMic, onKeyboard, camera
           J.A.R.V.I.S
         </div>
         <p className="text-sm text-slate-300" data-testid="status-text">
-          {STATUS_TEXT[phase]}
+          {statusText}
         </p>
         {phase === "offline" && (
           <p className="mt-1 text-[11px] text-slate-500">Yeniden bağlanıyor...</p>
         )}
+        {voiceError && <p className="mt-1 text-[11px] text-red-400">{voiceError}</p>}
+        {voice && !voice.mic_available && (
+          <p className="mt-1 text-[11px] text-slate-500">Mikrofon bulunamadı.</p>
+        )}
+      </div>
+
+      {/* Mikrofon dinleme göstergesi — HER ZAMAN görünür (gereklim 5.4) */}
+      <div
+        className="mt-4 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium tracking-wide"
+        style={{
+          borderColor: `color-mix(in srgb, ${MIC_COLOR[micState] ?? MIC_COLOR.off} 45%, transparent)`,
+          color: MIC_COLOR[micState] ?? MIC_COLOR.off,
+          background: "rgb(0 0 0 / 0.25)",
+        }}
+        data-testid="mic-indicator"
+      >
+        <span
+          className={micOn ? "h-1.5 w-1.5 animate-pulse rounded-full" : "h-1.5 w-1.5 rounded-full"}
+          style={{ background: MIC_COLOR[micState] ?? MIC_COLOR.off }}
+        />
+        {MIC_LABEL[micState] ?? MIC_LABEL.off}
       </div>
 
       {/* Alt butonlar: kamera / mikrofon / klavye */}
-      <div className="mt-8 flex items-center gap-4">
+      <div className="mt-6 flex items-center gap-4">
         <CircleButton
           onClick={onCamera}
           title="Kamera"
@@ -72,8 +181,8 @@ export default function CenterStage({ phase, onCamera, onMic, onKeyboard, camera
         />
         <CircleButton
           onClick={onMic}
-          title="Mikrofon (Faz 3)"
-          disabled
+          title={micOn ? "Mikrofonu durdur" : "Sesli moda geç"}
+          active={micOn}
           label="mic"
           icon={
             <path

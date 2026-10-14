@@ -50,6 +50,9 @@ export default function App() {
         ? "speaking"
         : "idle";
 
+  // Sesli oturum aktifken masaüstünde yalnızca orta alan görünür (gereklim 4).
+  const voiceSessionActive = !!jarvis.voice?.session;
+
   const handleExport = (format: "txt" | "md") => {
     window.open(api.exportUrl(format), "_blank");
   };
@@ -100,38 +103,49 @@ export default function App() {
         </div>
       )}
 
-      {/* Ana ızgara */}
-      <main className="relative z-10 grid min-h-0 flex-1 gap-3 p-3 lg:grid-cols-[280px_minmax(0,1fr)_340px]">
-        {/* Sol kolon — masaüstü */}
-        <div className="hidden min-h-0 space-y-2.5 overflow-y-auto pr-0.5 lg:block">{cards}</div>
+      {/* Ana ızgara — sesli oturumda masaüstünde yalnızca orta alan */}
+      <main
+        className={
+          voiceSessionActive
+            ? "relative z-10 grid min-h-0 flex-1 place-items-center p-3"
+            : "relative z-10 grid min-h-0 flex-1 gap-3 p-3 lg:grid-cols-[280px_minmax(0,1fr)_340px]"
+        }
+      >
+        {/* Sol kolon — masaüstü, sesli oturumda gizli */}
+        {!voiceSessionActive && (
+          <div className="hidden min-h-0 space-y-2.5 overflow-y-auto pr-0.5 lg:block">{cards}</div>
+        )}
 
         {/* Orta alan */}
         <CenterStage
           phase={phase}
           cameraLive={jarvis.camera.status === "live"}
+          voice={jarvis.voice}
+          voiceError={jarvis.voiceError}
           onCamera={() => {
             if (window.innerWidth < 1024) setDrawerOpen(true);
             else jarvis.toggleCamera();
           }}
-          onMic={() => {
-            /* Faz 3: sesli mod */
-          }}
+          onMic={jarvis.toggleMic}
           onKeyboard={() => chatInputRef.current?.focus()}
+          onExitVoiceMode={jarvis.exitVoiceMode}
         />
 
-        {/* Sağ panel — sohbet */}
-        <div className="min-h-0 lg:block">
-          <ConversationPanel
-            ref={chatInputRef}
-            messages={jarvis.messages}
-            sending={jarvis.sending}
-            online={jarvis.online}
-            lastError={jarvis.lastError}
-            onSend={jarvis.sendMessage}
-            onClear={jarvis.clearConversation}
-            onExport={handleExport}
-          />
-        </div>
+        {/* Sağ panel — sohbet, sesli oturumda gizli */}
+        {!voiceSessionActive && (
+          <div className="min-h-0 lg:block">
+            <ConversationPanel
+              ref={chatInputRef}
+              messages={jarvis.messages}
+              sending={jarvis.sending}
+              online={jarvis.online}
+              lastError={jarvis.lastError}
+              onSend={jarvis.sendMessage}
+              onClear={jarvis.clearConversation}
+              onExport={handleExport}
+            />
+          </div>
+        )}
       </main>
 
       <SettingsModal
@@ -139,8 +153,10 @@ export default function App() {
         settings={jarvis.settings}
         online={jarvis.online}
         health={jarvis.health}
+        voice={jarvis.voice}
         onClose={() => setSettingsOpen(false)}
         onSave={jarvis.saveSettings}
+        onSaveVoice={jarvis.updateVoiceSettings}
       />
     </div>
   );

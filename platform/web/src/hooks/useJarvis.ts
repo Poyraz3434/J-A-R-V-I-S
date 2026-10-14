@@ -16,6 +16,7 @@ import type {
   ChatMessage,
   HealthInfo,
   SystemStats,
+  VoiceStatus,
   WeatherInfo,
 } from "../types";
 
@@ -43,6 +44,10 @@ export function useJarvis() {
   const [cameraBusy, setCameraBusy] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
+  /** Faz 3: sesli mod durumu (WS akışından + REST'ten beslenir). */
+  const [voice, setVoice] = useState<VoiceStatus | null>(null);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+
   const wsRef = useRef<WebSocket | null>(null);
   const retryRef = useRef(0);
   const onlineRef = useRef(false);
@@ -60,7 +65,9 @@ export function useJarvis() {
     wsRef.current = ws;
     ws.onmessage = (ev) => {
       try {
-        setStats(JSON.parse(ev.data) as SystemStats);
+        const data = JSON.parse(ev.data) as SystemStats;
+        setStats(data);
+        if (data.voice) setVoice(data.voice);
         markOnline(true);
         retryRef.current = 0;
       } catch {
@@ -87,6 +94,7 @@ export function useJarvis() {
       try {
         const s = await api.stats();
         setStats(s);
+        if (s.voice) setVoice(s.voice);
         markOnline(true);
       } catch {
         markOnline(false);
@@ -262,6 +270,63 @@ export function useJarvis() {
     }
   }, []);
 
+  // ── Sesli mod (Faz 3) ──
+  const refreshVoice = useCallback(async () => {
+    try {
+      setVoice(await api.voiceStatus());
+    } catch {
+      /* offline */
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshVoice();
+  }, [refreshVoice]);
+
+  const toggleMic = useCallback(async () => {
+    setVoiceError(null);
+    try {
+      setVoice(voice && voice.mic !== "off" ? await api.voiceStop() : await api.voiceStart());
+    } catch (e) {
+      setVoiceError(e instanceof Error ? e.message : "Mikrofon hatası");
+    }
+  }, [voice]);
+
+  const startVoiceMode = useCallback(async (reason?: string) => {
+    setVoiceError(null);
+    try {
+      setVoice(await api.voiceModeOn(reason ?? "ui_button"));
+    } catch (e) {
+      setVoiceError(e instanceof Error ? e.message : "Sesli mod başlatılamadı");
+    }
+  }, []);
+
+  const exitVoiceMode = useCallback(async () => {
+    setVoiceError(null);
+    try {
+      setVoice(await api.voiceModeOff());
+    } catch (e) {
+      setVoiceError(e instanceof Error ? e.message : "Sesli moddan çıkılamadı");
+    }
+  }, []);
+
+  const say = useCallback(async (text: string) => {
+    try {
+      await api.voiceSay(text);
+    } catch {
+      /* offline */
+    }
+  }, []);
+
+  const updateVoiceSettings = useCallback(
+    async (patch: Parameters<typeof api.voiceUpdateSettings>[0]) => {
+      const updated = await api.voiceUpdateSettings(patch);
+      setVoice(updated);
+      return updated;
+    },
+    []
+  );
+
   return {
     online,
     stats,
@@ -275,6 +340,8 @@ export function useJarvis() {
     photo,
     cameraBusy,
     cameraError,
+    voice,
+    voiceError,
     setPhoto,
     refreshWeather,
     sendMessage,
@@ -284,6 +351,12 @@ export function useJarvis() {
     toggleCamera,
     capturePhoto,
     refreshCamera,
+    toggleMic,
+    startVoiceMode,
+    exitVoiceMode,
+    refreshVoice,
+    say,
+    updateVoiceSettings,
   };
 }
 

@@ -60,6 +60,36 @@ export const api = {
   cameraCapture: () =>
     request<{ image: string; captured_at: string }>("/api/camera/capture", { method: "POST" }),
 
+  /** Faz 3: sesli mod uçları. */
+  voiceStatus: () => request<import("../types").VoiceStatus>("/api/voice/status"),
+  voiceStart: () =>
+    request<import("../types").VoiceStatus>("/api/voice/start", { method: "POST" }),
+  voiceStop: () =>
+    request<import("../types").VoiceStatus>("/api/voice/stop", { method: "POST" }),
+  voiceModeOn: (reason?: string) =>
+    request<import("../types").VoiceStatus>("/api/voice/mode/on", {
+      method: "POST",
+      body: JSON.stringify(reason ? { reason } : {}),
+    }),
+  voiceModeOff: () =>
+    request<import("../types").VoiceStatus>("/api/voice/mode/off", { method: "POST" }),
+  voiceSay: (text: string) =>
+    request<{ spoken: boolean }>("/api/voice/say", {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    }),
+  voiceUpdateSettings: (patch: {
+    wake_phrases?: string[];
+    wake_response?: string;
+    exit_phrases?: string[];
+    clap_enabled?: boolean;
+    clap_sensitivity?: number;
+  }) =>
+    request<import("../types").VoiceStatus>("/api/voice/settings", {
+      method: "PUT",
+      body: JSON.stringify(patch),
+    }),
+
   /** Dışa aktarma indirme bağlantısı (tarayıcı dosyayı indirir). */
   exportUrl: (format: "txt" | "md") => `/api/conversation/export?format=${format}`,
 };

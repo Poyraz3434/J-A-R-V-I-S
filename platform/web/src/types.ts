@@ -31,6 +31,8 @@ export interface SystemStats {
   load_level: "low" | "medium" | "high";
   command_count?: number;
   session_count?: number;
+  /** Faz 3: mikrofon durumu akışta her zaman taşınır. */
+  voice?: VoiceStatus;
 }
 
 export interface HealthInfo {
@@ -66,6 +68,21 @@ export interface CameraStatus {
   status: "live" | "off";
   width: number | null;
   height: number | null;
+}
+
+/** Faz 3: sesli mod durumu — /api/voice/status ve /ws/stats içindeki "voice". */
+export interface VoiceStatus {
+  mic: "off" | "wake" | "listening" | "thinking" | "speaking" | "error";
+  session: boolean;
+  mic_available: boolean;
+  local_stt: boolean;
+  clap_enabled: boolean;
+  clap_sensitivity: number;
+  wake_phrases: string[];
+  exit_phrases: string[];
+  last_heard?: string | null;
+  last_reply?: string | null;
+  error?: string | null;
 }
 
 export interface AppSettings {
