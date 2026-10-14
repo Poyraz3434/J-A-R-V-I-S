@@ -21,6 +21,7 @@ _HIDDEN = [
     "pytesseract", "PIL", "mss", "pygetwindow", "pyautogui",
     "bs4", "speedtest_cli", "pywhatkit", "numpy", "fitz",
     "requests", "urllib3",
+    "selenium", "webdriver_manager",   # ATLAS web otomasyonu (fonksiyon-içi import)
     "services.ai_engine",
     "services.skill_registry", "services.task_center", "services.update_check",
 ]
@@ -30,7 +31,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ("data/curriculum.json", "data"),   # Ö🇿ellik 8: müfredat veri katmanı
+        ("data/curriculum.json", "data"),   # Özellik 8: müfredat veri katmanı
     ],
     hiddenimports=_HIDDEN,
     hookspath=[],
