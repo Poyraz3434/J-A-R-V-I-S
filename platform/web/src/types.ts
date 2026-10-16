@@ -90,3 +90,24 @@ export interface AppSettings {
   city: string;
   allowed_background_colors: string[];
 }
+
+/** Faz 4: hatırlatıcı — reminders/service.py şemasıyla uyumlu. */
+export interface Reminder {
+  id: number;
+  title: string;
+  due_at: string;
+  status: "pending" | "firing" | "acknowledged" | "expired";
+  repeat_count: number;
+  last_fired_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Faz 2: eşleşmiş cihaz. */
+export interface DeviceSummary {
+  id: string;
+  name: string;
+  platform?: string;
+  created_at?: string;
+  last_seen_at?: string | null;
+}

@@ -42,9 +42,12 @@ def create_reminder(payload: ReminderCreateBody, request: Request) -> dict:
             detail="due_at ISO-8601 biçiminde olmalı (örn. 2026-10-14T09:00:00).",
         )
     counters.bump_command_count()
-    reminder = _svc(request).create(
-        payload.title.strip(), due, payload.note, source="ui"
-    )
+    # ReminderService.create(title, due) — note alanı servis şemasında yok;
+    # varsa başlığa eklenir (UI'da tek satır görüntülenir).
+    title = payload.title.strip()
+    if payload.note.strip():
+        title = f"{title} — {payload.note.strip()}"[:200]
+    reminder = _svc(request).create(title, due)
     return {"reminder": reminder}
 
 

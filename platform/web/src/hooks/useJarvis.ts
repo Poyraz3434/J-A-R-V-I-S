@@ -15,6 +15,7 @@ import type {
   CameraStatus,
   ChatMessage,
   HealthInfo,
+  Reminder,
   SystemStats,
   VoiceStatus,
   WeatherInfo,
@@ -52,6 +53,8 @@ export function useJarvis() {
   const retryRef = useRef(0);
   const onlineRef = useRef(false);
   const offlineNoteShown = useRef(false);
+  /** WS hatırlatıcı kareleri geldiğinde CRUD yenileme tetikleyicisi. */
+  const remindersRefreshRef = useRef<(() => void) | null>(null);
 
   const markOnline = useCallback((value: boolean) => {
     if (value) offlineNoteShown.current = false;
@@ -66,6 +69,12 @@ export function useJarvis() {
     ws.onmessage = (ev) => {
       try {
         const data = JSON.parse(ev.data) as SystemStats;
+        if ((data as { type?: string }).type === "reminder") {
+          // Hatırlatıcı olayı (created/fired/acked/deleted/expired) — istatistik
+          // karesi değil; listeyi tazeleyip bu kareyi stats'a yazma.
+          remindersRefreshRef.current?.();
+          return;
+        }
         setStats(data);
         if (data.voice) setVoice(data.voice);
         markOnline(true);
@@ -327,6 +336,70 @@ export function useJarvis() {
     []
   );
 
+  // ── Hatırlatıcılar (Faz 4) ──
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+
+  const refreshReminders = useCallback(async () => {
+    try {
+      const r = await api.reminders(false);
+      setReminders(r.reminders);
+    } catch {
+      /* offline — mevcut liste korunur */
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshReminders();
+    remindersRefreshRef.current = refreshReminders;
+  }, [refreshReminders]);
+
+  const createReminder = useCallback(
+    async (title: string, due_at: string) => {
+      const r = await api.createReminder(title, due_at);
+      await refreshReminders();
+      return r.reminder;
+    },
+    [refreshReminders]
+  );
+
+  const deleteReminder = useCallback(
+    async (id: number) => {
+      await api.deleteReminder(id);
+      await refreshReminders();
+    },
+    [refreshReminders]
+  );
+
+  const ackReminder = useCallback(
+    async (id: number) => {
+      await api.ackReminder(id);
+      await refreshReminders();
+    },
+    [refreshReminders]
+  );
+
+  const snoozeReminder = useCallback(
+    async (id: number, minutes: number) => {
+      await api.snoozeReminder(id, minutes);
+      await refreshReminders();
+    },
+    [refreshReminders]
+  );
+
+  const ackAllAlarms = useCallback(async () => {
+    await api.ackAllAlarms();
+    await refreshReminders();
+  }, [refreshReminders]);
+
+  /** Kullanıcı etkileşimi ping'i — çalan alarm susar (koşul 1). */
+  const reportActivity = useCallback(async () => {
+    try {
+      await api.reportActivity();
+    } catch {
+      /* offline */
+    }
+  }, []);
+
   return {
     online,
     stats,
@@ -357,6 +430,14 @@ export function useJarvis() {
     refreshVoice,
     say,
     updateVoiceSettings,
+    reminders,
+    refreshReminders,
+    createReminder,
+    deleteReminder,
+    ackReminder,
+    snoozeReminder,
+    ackAllAlarms,
+    reportActivity,
   };
 }
 

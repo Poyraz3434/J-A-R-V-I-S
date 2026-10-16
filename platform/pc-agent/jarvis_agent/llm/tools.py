@@ -157,3 +157,10 @@ async def execute_tool(
             return {"deleted": ok}
         return {"acked": await asyncio.to_thread(_rem.ack_all, "voice")}
     return {"error": f"bilinmeyen araç: {name}"}
+
+# === Faz 5-6-7 entegrasyon araç köprüsü (INT57) ===
+# int57_bridge: mail/haber/dosya/akıllı ev/WhatsApp/e-posta araçlarını
+# TOOL_SPECS'e ekler ve execute_tool'u sarmalar (idempotent).
+from .int57_bridge import install_int57_bridge as _int57_install  # noqa: E402
+
+_int57_install(globals())

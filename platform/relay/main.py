@@ -394,7 +394,6 @@ async def agent_channel(ws: WebSocket) -> None:
     finally:
         await hub.unregister(ws)
 
-
 async def _handle_agent_message(msg: dict) -> None:
     """Agent'tan gelen senkron mesajlarını işler."""
     kind = msg.get("type")
@@ -414,3 +413,9 @@ async def _handle_agent_message(msg: dict) -> None:
 
 
 
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("JARVIS_RELAY_PORT", "8001")))

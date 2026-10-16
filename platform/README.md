@@ -128,10 +128,103 @@ F:\Software\JARVİS\.venv\Scripts\python -m pytest tests -v
 4. LLM'e son 24 mesaj gönderilir (bağlam sınırı).
 5. PWA manifest hazır; service worker + kurulum akışı Faz 2'de.
 
-## Sonraki Fazlar
+## Faz Durumu (hepsi tamamlandı ve doğrulandı)
 
-- **Faz 2**: QR eşleştirme, relay sunucusu, TLS, PWA, Wake-on-LAN
-- **Faz 3**: Wake word + çift alkış, STT/TTS, sesli mod arayüzü
-- **Faz 4**: Sunucu tarafı hatırlatıcı zamanlayıcı + tekrarlı alarm
-- **Faz 5-7**: Mail, AI haberleri, dosya transferi, akıllı ev, WhatsApp
+| Faz | Kapsam | Durum |
+|---|---|---|
+| 1 | Yerel çekirdek: agent, web UI, istatistik, sohbet, ayarlar | ✅ |
+| 2 | QR eşleştirme, güvenlik katmanı, relay, PWA, WoL | ✅ |
+| 3 | Uyandırma ifadeleri, çift alkış, STT/TTS, sesli mod UI | ✅ |
+| 4 | Hatırlatıcı/alarm: tekrarlı bildirim, WoL ile uyandırma | ✅ |
+| 5 | Mail (IMAP salt-okunur), AI haberleri, dosya transferi | ✅ |
+| 6 | Home Assistant (ışık/priz/klima on-off + durum) | ✅ |
+| 7 | WhatsApp (CallMeBot tek yönlü) | ✅ |
+
+### Faz 2 — Eşleştirme ve uzaktan erişim
+
+- `jarvis_agent/security.py`: cihaz token tablosu (SQLite), SHA-256 token,
+  loopback muafiyeti. `JARVIS_PAIRING_REQUIRED=1` veya `0.0.0.0` bind'da
+  loopback dışı **tüm** `/api/*` istekleri `X-Device-Token` ister
+  (`/api/health` ve `/api/pair/*` hariç).
+- `api/routes_pair.py`: `POST /api/pair/start` (6 haneli, 5 dk ömürlü kod +
+  LAN URL), `GET /api/pair/qr.svg` (segno ile SVG QR), `POST /api/pair/claim`,
+  `GET /api/pair/status`, `DELETE /api/pair/devices/{id}` (cihaz iptali).
+- UI: `PairingGate` (URL'de `?pair=KOD` yakalar), `PairCard` (cihaz listesi).
+- PWA: `public/sw.js` (statik kabuk önbelleği; `/api` ve `/ws` asla
+  önbelleklenmez), `manifest.webmanifest`, ana ekrana ekle akışı.
+- `relay_client.py`: agent'tan relay'e **outbound** WebSocket
+  (`/agent-channel?token=`) — router'da port açmaya gerek yok.
+- `platform/relay/`: FastAPI relay (agent hub'ı, hatırlatıcı kalıcılığı,
+  WoL tetikleme). `platform/wol-node/`: Raspberry Pi/router üzerinde
+  magic packet servisi (`POST /wake`, Bearer secret).
+
+### Faz 3 — Sesli mod
+
+- `jarvis_agent/voice/`: `audio.py` (sounddevice girişi), `clap.py`
+  (çift alkış — enerji patlaması çift sayımı), `stt.py` (faster-whisper,
+  yerel, küçük model), `tts.py` (edge-tts, Türkçe ses), `textmatch.py`
+  (Türkçe uyandırma/çıkış ifadeleri — normalizasyon + benzerlik),
+  `focus_window.py` (barge-in: konuşurken pencere odağı), `service.py`
+  (durum makinesi: idle → wake → session; WS ile canlı durum yayını).
+- API: `/api/voice/status|start|stop|mode/on|mode/off|say|settings`.
+- UI: `CenterStage` sesli mod sahneleri (dinliyor/düşünüyor/konuşuyor),
+  `SettingsModal`'da mikrofon/alkış hassasiyeti/otomatik başlatma.
+- `.env`: `JARVIS_VOICE_DISABLED=1` ile tüm ses katmanı kapanır.
+
+### Faz 4 — Hatırlatıcılar ve alarmlar
+
+- `reminders/service.py`: SQLite tabanlı; `pending → firing → acked/expired`;
+  tekrarlı alarm (REPEAT_EVERY_SECONDS, MAX_REPEATS), kullanıcı etkinliği
+  algılanınca susma (`notify_user_activity`), UI onayı (`ack`, `snooze`).
+- Agent tick'i + **relay tarafı zamanlayıcı**: PC kapalıyken hatırlatma
+  relay'de yaşar; PC'yi uyandırmak gerekirse relay → WoL node → magic packet.
+- LLM araçları: `create_reminder`, `list_reminders`, `delete_reminder`,
+  `ack_active_alarms` ("tamam, sustur" doğal dilini karşılar).
+- UI: `ReminderCard` (liste + form + çalan alarm banner'ı).
+
+### Faz 5-6-7 — Entegrasyonlar
+
+- `integrations/mail.py`: IMAP SSL, salt-okunur INBOX, okunmamışlar.
+- `integrations/news.py`: RSS/Atom (stdlib XML), AI + Türkçe teknoloji.
+- `integrations/files.py`: `~/JarvisFiles` paylaşım klasörü; ad sanitizasyonu,
+  yol kaçışı engelli, 100 MB sınırı, silme ucu yok. `routes_files.py` +
+  `FileTransferCard` (yükle/indir).
+- `integrations/home.py`: Home Assistant REST; `summarize_states`,
+  `control` (yalnız on/off/status — kilit gibi hassas servisler dışarıda).
+- `integrations/whatsapp.py`: CallMeBot tek yönlü gönderim (kurulum
+  yorumlarda: numara kaydet + onay mesajı + API key).
+- Tümü `.env` anahtarlarıyla açılır; yapılandırılmamışsa araçlar zarif
+  `{"available": false}` döner, uygulama asla düşmez.
+
+### Relay ve WoL kurulumu
+
+```powershell
+# Relay (bulutta ya da her zaman açık bir makinede):
+cd platform/relay
+pip install -r requirements.txt
+JARVIS_RELAY_TOKEN=<güçlü-token> python main.py        # :8001
+# Üretimde Caddy/nginx ile TLS önüne alın (wss://).
+
+# WoL node (aynı LAN'da Pi/router):
+cd platform/wol-node
+pip install -r requirements.txt
+JARVIS_WOL_SECRET=<secret> python main.py              # :8080
+
+# Agent (.env):
+JARVIS_RELAY_URL=wss://relay.example.com
+JARVIS_RELAY_TOKEN=<güçlü-token>
+JARVIS_WOL_NODE_URL=http://<pi-ip>:8080
+JARVIS_WOL_NODE_SECRET=<secret>
+JARVIS_TARGET_MAC=AA-BB-CC-DD-EE-FF
+```
+
+### Doğrulama
+
+- `pytest tests -q` → **54 test** (agent, hatırlatıcı, pairing/faz2,
+  int57 köprüsü) — ağ ve anahtardan bağımsız.
+- `npm run build` → temiz TS derlemesi.
+- Canlı duman testi: health, stats, pair start/QR/status, settings,
+  reminder oluştur/liste/sil, files, voice status, chat (mock) ve
+  `/sw.js` sunumu — tümü HTTP 200; relay bağlantısı `connected: true`.
+
 

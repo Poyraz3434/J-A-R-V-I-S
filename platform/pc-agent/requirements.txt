@@ -19,3 +19,6 @@ faster-whisper==1.1.1     # STT (yerel, Türkçe model)
 # Faz 4 — relay bağlantısı (hatırlatıcılar)
 websockets==14.1
 pynput==1.7.7
+
+# Faz 2 — QR eşleştirme (saf Python, bağımlılıksız)
+segno==1.6.0

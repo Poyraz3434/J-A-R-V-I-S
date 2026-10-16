@@ -13,10 +13,23 @@ export class ApiError extends Error {
   }
 }
 
+/** Faz 2: eşleşmiş cihaz belirteci — telefonda claim sonrası saklanır. */
+const TOKEN_KEY = "jarvis.device_token";
+export const deviceToken = {
+  get: () => localStorage.getItem(TOKEN_KEY) ?? "",
+  set: (t: string) => localStorage.setItem(TOKEN_KEY, t),
+  clear: () => localStorage.removeItem(TOKEN_KEY),
+};
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = deviceToken.get();
   const resp = await fetch(path, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { "X-Device-Token": token } : {}),
+      ...(init?.headers ?? {}),
+    },
   });
   if (!resp.ok) {
     let detail = `HTTP ${resp.status}`;
@@ -92,4 +105,55 @@ export const api = {
 
   /** Dışa aktarma indirme bağlantısı (tarayıcı dosyayı indirir). */
   exportUrl: (format: "txt" | "md") => `/api/conversation/export?format=${format}`,
+
+  /** Faz 4: hatırlatıcılar. */
+  reminders: (history = false) =>
+    request<{ reminders: import("../types").Reminder[] }>(
+      `/api/reminders${history ? "?history=true" : ""}`
+    ),
+  createReminder: (title: string, due_at: string) =>
+    request<{ reminder: import("../types").Reminder }>("/api/reminders", {
+      method: "POST",
+      body: JSON.stringify({ title, due_at }),
+    }),
+  deleteReminder: (id: number) =>
+    request<{ deleted: number }>(`/api/reminders/${id}`, { method: "DELETE" }),
+  ackReminder: (id: number) =>
+    request<{ reminder: import("../types").Reminder }>(`/api/reminders/${id}/ack`, {
+      method: "POST",
+    }),
+  ackAllAlarms: () =>
+    request<{ acked: number }>("/api/reminders/ack-all", { method: "POST" }),
+  snoozeReminder: (id: number, minutes = 10) =>
+    request<{ reminder: import("../types").Reminder }>(`/api/reminders/${id}/snooze`, {
+      method: "POST",
+      body: JSON.stringify({ minutes }),
+    }),
+  reportActivity: () =>
+    request<{ silenced: boolean }>("/api/reminders/activity", { method: "POST" }),
+
+  /** Faz 2: eşleştirme — QR akışı ve cihaz yönetimi (routes_pair.py şekilleri). */
+  pairStart: () =>
+    request<{ code: string; expires_in: number; url: string }>("/api/pair/start", {
+      method: "POST",
+    }),
+  pairStatus: () =>
+    request<{
+      pending: boolean;
+      expires_in: number | null;
+      devices: import("../types").DeviceSummary[];
+      lan_ip: string | null;
+    }>("/api/pair/status"),
+  pairClaim: (code: string, device_name: string) =>
+    request<{ device_id: string; name: string; device_token: string }>(
+      "/api/pair/claim",
+      { method: "POST", body: JSON.stringify({ code, device_name }) }
+    ),
+  revokeDevice: (id: string) =>
+    request<{ revoked: string }>(`/api/pair/devices/${id}`, { method: "DELETE" }),
+
+  /** Faz 2: WoL — kurulum durumu ve test (routes_system.py). */
+  wolStatus: () => request<Record<string, unknown>>("/api/system/wol"),
+  wolTest: () =>
+    request<Record<string, unknown>>("/api/system/wol/wake", { method: "POST" }),
 };

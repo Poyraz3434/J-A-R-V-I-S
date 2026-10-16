@@ -11,6 +11,9 @@ import SystemStatsCard from "./components/SystemStatsCard";
 import WeatherCard from "./components/WeatherCard";
 import CameraCard from "./components/CameraCard";
 import UptimeCard from "./components/UptimeCard";
+import ReminderCard from "./components/ReminderCard";
+import PairCard from "./components/PairCard";
+import FileTransferCard from "./components/FileTransferCard";
 import CenterStage from "./components/CenterStage";
 import ConversationPanel from "./components/ConversationPanel";
 import SettingsModal from "./components/SettingsModal";
@@ -57,6 +60,19 @@ export default function App() {
     window.open(api.exportUrl(format), "_blank");
   };
 
+  // Kullanıcı etkileşimi: çalan alarmları susar (koşul 1 — active UI).
+  useEffect(() => {
+    const ping = () => void jarvis.reportActivity();
+    window.addEventListener("pointerdown", ping);
+    window.addEventListener("keydown", ping);
+    return () => {
+      window.removeEventListener("pointerdown", ping);
+      window.removeEventListener("keydown", ping);
+    };
+  }, [jarvis.reportActivity]);
+
+  const firingReminders = jarvis.reminders.filter((r) => r.status === "firing");
+
   const cards = (
     <>
       <SystemStatsCard stats={jarvis.stats} online={jarvis.online} />
@@ -66,6 +82,7 @@ export default function App() {
         citySetting={jarvis.settings?.city}
         onRefresh={() => jarvis.refreshWeather(true)}
       />
+      <ReminderCard online={jarvis.online} />
       <CameraCard
         camera={jarvis.camera}
         photo={jarvis.photo}
@@ -76,6 +93,8 @@ export default function App() {
         onCapture={jarvis.capturePhoto}
         onClosePhoto={() => jarvis.setPhoto(null)}
       />
+      <FileTransferCard />
+      <PairCard online={jarvis.online} />
       <UptimeCard stats={jarvis.stats} online={jarvis.online} />
     </>
   );
@@ -88,6 +107,25 @@ export default function App() {
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenDrawer={() => setDrawerOpen(true)}
       />
+
+      {/* Çalan alarm banner'ı (Faz 4): user hareketi susar, buton ack yapar */}
+      {firingReminders.length > 0 && (
+        <div
+          className="relative z-20 mx-3 mt-2 flex animate-pulse items-center justify-between gap-3 rounded-xl border px-4 py-2.5"
+          style={{ borderColor: "var(--border-strong)", background: "rgb(70 18 18 / 0.88)" }}
+        >
+          <div className="truncate text-sm font-semibold text-red-100">
+            🔔 {firingReminders[0].title}
+            {firingReminders.length > 1 && ` (+${firingReminders.length - 1} alarm daha)`}
+          </div>
+          <button
+            onClick={() => void jarvis.ackAllAlarms()}
+            className="shrink-0 rounded-lg border border-red-300/30 bg-red-500/25 px-3 py-1 text-xs font-bold text-red-50 hover:bg-red-500/40"
+          >
+            Sustur
+          </button>
+        </div>
+      )}
 
       {/* Mobil çekmece (sistem kartları) */}
       {drawerOpen && (
