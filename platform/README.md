@@ -164,7 +164,7 @@ F:\Software\JARVİS\.venv\Scripts\python -m pytest tests -v
 
 - `jarvis_agent/voice/`: `audio.py` (sounddevice girişi), `clap.py`
   (çift alkış — enerji patlaması çift sayımı), `stt.py` (faster-whisper,
-  yerel, küçük model), `tts.py` (edge-tts, Türkçe ses), `textmatch.py`
+  yerel, küçük model), `tts.py` (gTTS, Türkçe ses), `textmatch.py`
   (Türkçe uyandırma/çıkış ifadeleri — normalizasyon + benzerlik),
   `focus_window.py` (barge-in: konuşurken pencere odağı), `service.py`
   (durum makinesi: idle → wake → session; WS ile canlı durum yayını).
@@ -228,4 +228,3 @@ JARVIS_TARGET_MAC=AA-BB-CC-DD-EE-FF
 - Canlı duman testi: health, stats, pair start/QR/status, settings,
   reminder oluştur/liste/sil, files, voice status, chat (mock) ve
   `/sw.js` sunumu — tümü HTTP 200; relay bağlantısı `connected: true`.
-

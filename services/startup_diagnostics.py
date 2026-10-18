@@ -29,7 +29,7 @@ def collect_startup_diagnostics() -> list[tuple[str, str]]:
     ))
     for package, label in (
         ("yfinance", "Borsa verisi"),
-        ("edge_tts", "Sesli yanıt"),
+        ("gtts", "Sesli yanıt"),
         ("speech_recognition", "Ses tanıma"),
         ("playwright", "Web otomasyonu"),
         ("speedtest", "Hız testi"),

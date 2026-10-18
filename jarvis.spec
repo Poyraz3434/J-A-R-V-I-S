@@ -17,7 +17,7 @@ block_cipher = None
 # Dinamik (fonksiyon-içi) import'lara takviye — PyInstaller çoğu yakalar,
 # yine de eksik kalan edge-case'ler için burada listelenir.
 _HIDDEN = [
-    "groq", "edge_tts", "speech_recognition", "pygame", "yfinance",
+    "groq", "gtts", "speech_recognition", "playsound", "yfinance",
     "pytesseract", "PIL", "mss", "pygetwindow", "pyautogui",
     "bs4", "speedtest_cli", "pywhatkit", "numpy", "fitz",
     "requests", "urllib3",

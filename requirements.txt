@@ -13,7 +13,7 @@ python-multipart==0.0.20
 # AI and voice
 Groq>=0.11,<1
 openai>=1.52,<3
-edge-tts>=6.1,<7
+gTTS>=2.5,<3
 SpeechRecognition>=3.10,<4
 
 # Content and automation
@@ -30,8 +30,8 @@ webdriver-manager>=4,<6
 yfinance>=0.2.40,<1
 numpy>=2,<3
 mss>=9,<10
-pygame>=2.6,<3
 pygetwindow>=0.0.9,<1
+playsound==1.2.2
 pytesseract>=0.3.13,<1
 Pillow>=10,<12
 pyautogui>=0.9.54,<1

@@ -1,10 +1,4 @@
-"""TTS — konuşma sentezi: edge-tts (çevrimiçi) + Windows SAPI (yerel yedek).
-
-Gereksinim 5.4: doğal Türkçe ses; internet yoksa çalışan yerel alternatif.
-- Birincil: edge-tts "tr-TR-AhmetNeural" (doğal, ücretsiz Microsoft uç noktası)
-- Yedek: pyttsx3 + Windows SAPI (çevrimdışı, daha robotik ama garantili)
-Barge-in (kullanıcı konuşunca susma): konuşma öncesi iptal bayrağı.
-"""
+"""TTS — gTTS ile Türkçe konuşma sentezi ve MP3 oynatma."""
 from __future__ import annotations
 
 import asyncio
@@ -13,13 +7,7 @@ import threading
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from .. import config
-
 logger = logging.getLogger("jarvis.voice.tts")
-
-EDGE_VOICE = "tr-TR-AhmetNeural"
-SAPI_VOICE_HINT = "Microsoft"  # Türkçe SAPI sesi varsa seç
-
 
 class TTSService:
     """Metni sese çevirir ve çalar; iptal edilebilir."""
@@ -49,90 +37,33 @@ class TTSService:
         finally:
             self._speaking.clear()
 
-    # ── Birincil: edge-tts → mp3 → çal (bağımsız iş parçacığında) ──
     async def _speak_inner(self, text: str) -> bool:
+        path: Path | None = None
         try:
-            import edge_tts
+            from gtts import gTTS
 
-            communicate = edge_tts.Communicate(text, EDGE_VOICE)
             with NamedTemporaryFile(
                 suffix=".mp3", delete=False, dir=self._tmp_dir
             ) as tmp:
                 tmp_path = Path(tmp.name)
-            try:
-                await communicate.save(str(tmp_path))
-            except Exception:
-                tmp_path.unlink(missing_ok=True)
-                raise
+            path = tmp_path
+            await asyncio.to_thread(gTTS(text=text, lang="tr", slow=False).save, str(path))
             if self._cancel.is_set():
-                tmp_path.unlink(missing_ok=True)
+                path.unlink(missing_ok=True)
                 return False
-            return await asyncio.to_thread(self._play_mp3_blocking, tmp_path)
-        except ImportError:
-            logger.warning("edge-tts kurulu değil — SAPI yedeğine geçiliyor")
-        except Exception as exc:
-            logger.warning("edge-tts başarısız (%s) — SAPI yedeğine geçiliyor", exc)
-        # ── Yedek: Windows SAPI (çevrimdışı) ──
-        return await asyncio.to_thread(self._speak_sapi_blocking, text)
+            return await asyncio.to_thread(self._play_mp3_blocking, path)
+        except Exception:
+            logger.exception("gTTS konuşma üretimi veya oynatması başarısız")
+            if path is not None:
+                path.unlink(missing_ok=True)
+            return False
 
     def _play_mp3_blocking(self, path: Path) -> bool:
-        """MP3'ü çalar (mpv/wmplayer yoksa Python ses motorlarına düşer)."""
-        played = False
+        """gTTS tarafından üretilen MP3'ü çalar."""
         try:
-            # 1) ses oynatıcıları dene (hızlı yol)
-            try:
-                from playsound import playsound  # type: ignore
+            from playsound import playsound
 
-                playsound(str(path))
-                played = True
-            except Exception:
-                pass
-            if not played:
-                # 2) pygame fallback
-                try:
-                    import pygame  # type: ignore
-
-                    if not pygame.mixer.get_init():
-                        pygame.mixer.init()
-                    pygame.mixer.music.load(str(path))
-                    pygame.mixer.music.play()
-                    while pygame.mixer.music.get_busy():
-                        if self._cancel.is_set():
-                            pygame.mixer.music.stop()
-                            break
-                        pygame.time.wait(100)
-                    played = True
-                except Exception:
-                    pass
-            if not played:
-                logger.warning("MP3 oynatıcı bulunamadı — SAPI yedeğine geçiliyor")
-                return False
+            playsound(str(path))
             return not self._cancel.is_set()
         finally:
             path.unlink(missing_ok=True)
-
-    def _speak_sapi_blocking(self, text: str) -> bool:
-        """pyttsx3 + Windows SAPI ile çevrimdışı konuşma."""
-        try:
-            import pyttsx3  # type: ignore
-
-            engine = pyttsx3.init()
-            for voice in engine.getProperty("voices"):
-                name = (getattr(voice, "name", "") or "").lower()
-                if "turkish" in name or "türk" in name or "tr-tr" in name.replace(" ", "-"):
-                    engine.setProperty("voice", voice.id)
-                    break
-            engine.setProperty("rate", 175)
-            engine.startLoop(False)
-            engine.say(text)
-            engine.iterate()
-            while engine.isBusy():
-                if self._cancel.is_set():
-                    engine.stop()
-                    return False
-                engine.iterate()
-            engine.endLoop()
-            return not self._cancel.is_set()
-        except Exception:
-            logger.exception("SAPI TTS de başarısız — sesli yanıt verilemiyor")
-            return False

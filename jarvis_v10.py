@@ -19,13 +19,11 @@ import importlib.util
 import json
 import math
 import os
-import platform
 import random
 import re
 import shutil
 import smtplib
 import sqlite3
-import subprocess
 import sys
 import tempfile
 import threading
@@ -256,7 +254,7 @@ try:
 except Exception: REQUESTS_OK = False
 
 GROQ_OK = _optional_module_available("groq")
-EDGE_TTS_OK = _optional_module_available("edge_tts")
+GTTS_OK = _optional_module_available("gtts")
 
 try:
     import speech_recognition as sr; SR_OK = True
@@ -272,9 +270,6 @@ PYMUPDF_OK = (
     or _optional_module_available("fitz")
 )
 WA_OK = _optional_module_available("pywhatkit")
-
-os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
-PYGAME_OK = _optional_module_available("pygame")
 
 # Finance dependencies are discovered without importing their large stacks.
 try:
@@ -788,17 +783,6 @@ def get_daily_briefing() -> str:
 # ══════════════════════════════════════════════════════════════════════════
 # TTS - SES (v9: Profesyonel finans tonlaması)
 # ══════════════════════════════════════════════════════════════════════════
-VOICE_MAP = {
-    "male":   "tr-TR-AhmetNeural",
-    "female": "tr-TR-EmelNeural",
-}
-
-# v9: Finans için daha yavaş ve profesyonel ton
-VOICE_MAP_FINANCE = {
-    "male":   "tr-TR-AhmetNeural",
-    "female": "tr-TR-EmelNeural",
-}
-
 _tts_lock = threading.Lock()
 
 def _smart_truncate(text: str, max_chars: int = 400) -> str:
@@ -821,7 +805,7 @@ def _is_finance_content(text: str) -> bool:
 
 def speak_async(text: str, finance_mode: bool = False):
     """v9: finance_mode=True ise daha profesyonel, yavaş ses."""
-    if not EDGE_TTS_OK or not SETTINGS.get("tts_enabled", True):
+    if not GTTS_OK or not SETTINGS.get("tts_enabled", True):
         return
     clean_text = _smart_truncate(text, 400)
     finance_mode = finance_mode or (_is_finance_content(text) and
@@ -840,46 +824,21 @@ def speak_async(text: str, finance_mode: bool = False):
                 if tmp_path is None:
                     logger.warning("[TTS] Geçici dosya hedef doğrulanamadı; ses üretimi atlandı.")
                     return
-                voice = VOICE_MAP.get(SETTINGS.get("voice_gender", "male"), "tr-TR-AhmetNeural")
-                rate = "-10%" if finance_mode else SETTINGS.get("tts_speed", "+0%")
-                asyncio.run(_tts_save(clean_text, str(tmp_path), voice, rate))
+                slow = finance_mode
+                asyncio.run(_tts_save(clean_text, str(tmp_path), slow=slow))
                 if tmp_path.exists():
                     os.chmod(tmp_path, 0o600)
-                if PYGAME_OK:
-                    import pygame
+                from playsound import playsound
 
-                    if pygame.mixer.get_init() is None:
-                        pygame.mixer.init()
-                    pygame.mixer.music.load(str(tmp_path))
-                    pygame.mixer.music.play()
-                    while pygame.mixer.music.get_busy():
-                        time.sleep(0.1)
-                elif platform.system() == "Windows":
-                    safe_tmp = str(tmp_path).replace("'", "''")
-                    subprocess.run(
-                        [
-                            "powershell",
-                            "-NoProfile",
-                            "-ExecutionPolicy",
-                            "Bypass",
-                            "-Command",
-                            f"$mp = New-Object System.Windows.Media.MediaPlayer; $mp.Open('{safe_tmp}'); $mp.Play(); Start-Sleep 5",
-                        ],
-                        capture_output=True,
-                        timeout=10,
-                        shell=False,
-                        check=False,
-                    )
+                playsound(str(tmp_path))
             except Exception as e:
                 logger.exception("TTS hatası: %s", e)
     threading.Thread(target=_run, daemon=True).start()
 
-async def _tts_save(text, path, voice, rate="+0%"):
-    # v9: Hız parametresi eklendi
-    import edge_tts
+async def _tts_save(text, path, slow=False):
+    from gtts import gTTS
 
-    communicate = edge_tts.Communicate(text, voice=voice, rate=rate)
-    await communicate.save(path)
+    await asyncio.to_thread(gTTS(text=text, lang="tr", slow=slow).save, path)
 
 # ══════════════════════════════════════════════════════════════════════════
 # UYANDIRMA KELİMESİ (v8'den korundu)
