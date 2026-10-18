@@ -38,6 +38,7 @@ async def run_chat(
     *,
     persist: bool = True,
     source: str = "text",
+    owner_id: str = "local",
 ) -> dict[str, Any]:
     """Bir kullanıcı iletisini uçtan uca işler.
 
@@ -47,12 +48,12 @@ async def run_chat(
     message = (message or "").strip()
 
     if persist:
-        database.add_message("user", message)
+        database.add_message("user", message, owner_id=owner_id)
         database.audit("chat.message", detail=f"[{source}] {message[:200]}")
 
     llm_messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
     if persist:
-        for row in database.get_messages(limit=24):
+        for row in database.get_messages(limit=24, owner_id=owner_id):
             llm_messages.append({"role": row["role"], "content": row["content"]})
     else:
         llm_messages.append({"role": "user", "content": message})
@@ -94,7 +95,7 @@ async def run_chat(
             "ulaşılamıyor gibi görünüyor."
         )
         if persist:
-            database.add_message("assistant", reply)
+            database.add_message("assistant", reply, owner_id=owner_id)
             database.audit("chat.error", detail=str(exc)[:400])
         return {
             "reply": reply,
@@ -111,7 +112,7 @@ async def run_chat(
         )
 
     if persist:
-        database.add_message("assistant", final)
+        database.add_message("assistant", final, owner_id=owner_id)
     return {
         "reply": final,
         "used_tools": used_tools,

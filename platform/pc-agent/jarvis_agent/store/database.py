@@ -18,6 +18,7 @@ _write_lock = threading.Lock()
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner_id TEXT NOT NULL DEFAULT 'local',
     role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
     content TEXT NOT NULL,
     created_at TEXT NOT NULL
@@ -54,6 +55,18 @@ def init_db() -> None:
     """Tabloları oluşturur ve varsayılan ayarları ekler (idempotent)."""
     with _write_lock, closing(connect()) as conn, conn:
         conn.executescript(_SCHEMA)
+        columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(messages)").fetchall()
+        }
+        if "owner_id" not in columns:
+            conn.execute(
+                "ALTER TABLE messages ADD COLUMN owner_id TEXT NOT NULL DEFAULT 'local'"
+            )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_messages_owner_id_id "
+            "ON messages (owner_id, id)"
+        )
         for key, value in _default_settings().items():
             conn.execute(
                 "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
@@ -107,28 +120,29 @@ def increment_setting_int(key: str, by: int = 1) -> int:
 
 # ── Sohbet geçmişi ───────────────────────────────────────────────────────────
 
-def add_message(role: str, content: str) -> int:
+def add_message(role: str, content: str, owner_id: str = "local") -> int:
     with _write_lock, closing(connect()) as conn, conn:
         cur = conn.execute(
-            "INSERT INTO messages (role, content, created_at) VALUES (?, ?, ?)",
-            (role, content, _now()),
+            "INSERT INTO messages (owner_id, role, content, created_at) "
+            "VALUES (?, ?, ?, ?)",
+            (owner_id, role, content, _now()),
         )
     return int(cur.lastrowid or 0)
 
 
-def get_messages(limit: int = 200) -> list[dict[str, Any]]:
+def get_messages(limit: int = 200, owner_id: str = "local") -> list[dict[str, Any]]:
     with closing(connect()) as conn:
         rows = conn.execute(
             "SELECT id, role, content, created_at FROM messages "
-            "ORDER BY id DESC LIMIT ?",
-            (limit,),
+            "WHERE owner_id = ? ORDER BY id DESC LIMIT ?",
+            (owner_id, limit),
         ).fetchall()
     return [dict(row) for row in reversed(rows)]
 
 
-def clear_messages() -> int:
+def clear_messages(owner_id: str = "local") -> int:
     with _write_lock, closing(connect()) as conn, conn:
-        cur = conn.execute("DELETE FROM messages")
+        cur = conn.execute("DELETE FROM messages WHERE owner_id = ?", (owner_id,))
     return int(cur.rowcount or 0)
 
 

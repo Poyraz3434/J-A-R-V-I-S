@@ -30,7 +30,7 @@ export default function TopBar({ online, weather, onOpenSettings, onOpenDrawer }
     : "--";
 
   return (
-    <header className="relative z-10 flex h-14 items-center justify-between gap-3 border-b px-3 sm:px-4"
+    <header className="relative z-10 flex h-14 flex-shrink-0 items-center justify-between gap-3 border-b px-3 sm:px-4"
       style={{ borderColor: "var(--border)", background: "rgb(0 0 0 / 0.25)" }}>
 
       {/* Sol: logo + rozet */}

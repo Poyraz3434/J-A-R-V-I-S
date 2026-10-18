@@ -44,9 +44,8 @@
 
 html,
 body {
-  min-height: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
@@ -54,15 +53,17 @@ body {
   background-color: var(--bg-page);
   color: var(--text-main);
   font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
-  overflow-x: hidden;
-  touch-action: pan-y;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
 #root {
-  min-height: 100vh;
-  overflow-y: auto;
+  height: 100%;
+}
+
+main {
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 /* Yumuşak yay-şekilli arka plan parıltıları (referans ekran görünümü) */

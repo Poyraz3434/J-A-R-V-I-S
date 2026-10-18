@@ -172,6 +172,17 @@ def is_loopback(host: str) -> bool:
     return host in ("127.0.0.1", "::1", "localhost", "testclient")
 
 
+def request_owner(request: Any) -> str:
+    """Return the stable data partition for an authenticated request.
+
+    Paired devices are isolated by device id. Local desktop traffic uses one
+    explicit local partition because it has no remote device identity.
+    """
+    device = getattr(getattr(request, "state", None), "device", None)
+    device_id = str((device or {}).get("device_id") or "").strip()
+    return f"device:{device_id}" if device_id else "local"
+
+
 # ── Yardımcılar ──────────────────────────────────────────────────────────────
 
 def lan_ip() -> Optional[str]:

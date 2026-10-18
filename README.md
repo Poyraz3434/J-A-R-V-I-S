@@ -51,6 +51,8 @@ uvicorn --factory jarvis_agent.app:create_app --app-dir platform/pc-agent --host
 ```
 The same configuration is available in `render.yaml`. The health check is
 `/api/health`, and the OpenAPI documentation is available at `/api/docs`.
+Render must keep `JARVIS_BIND=0.0.0.0` and `JARVIS_PAIRING_REQUIRED=1` so
+paired device tokens create isolated conversation partitions.
 
 b) Configuration (.env)
 Create a .env file in the project root directory (or next to the compiled executable) to securely configure your API keys:

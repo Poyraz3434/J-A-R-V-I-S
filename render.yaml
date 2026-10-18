@@ -5,3 +5,8 @@ services:
     buildCommand: python -m pip install -r requirements.txt
     startCommand: uvicorn --factory jarvis_agent.app:create_app --app-dir platform/pc-agent --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
+    envVars:
+      - key: JARVIS_BIND
+        value: 0.0.0.0
+      - key: JARVIS_PAIRING_REQUIRED
+        value: "1"

@@ -3,10 +3,11 @@ from __future__ import annotations
 
 import datetime
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import Response
 
 from ..store import database
+from .. import security
 
 router = APIRouter()
 
@@ -14,14 +15,17 @@ ROLE_LABELS = {"user": "Kullanıcı", "assistant": "JARVIS", "system": "Sistem"}
 
 
 @router.get("/api/conversation")
-def get_conversation(limit: int = Query(default=200, ge=1, le=1000)) -> dict:
-    messages = database.get_messages(limit=limit)
+def get_conversation(request: Request, limit: int = Query(default=200, ge=1, le=1000)) -> dict:
+    messages = database.get_messages(
+        limit=limit, owner_id=security.request_owner(request)
+    )
     return {"messages": messages, "count": len(messages)}
 
 
 @router.delete("/api/conversation")
-def clear_conversation() -> dict:
-    cleared = database.clear_messages()
+def clear_conversation(request: Request) -> dict:
+    owner_id = security.request_owner(request)
+    cleared = database.clear_messages(owner_id=owner_id)
     database.audit("conversation.clear", detail=f"{cleared} mesaj silindi")
     return {"cleared": cleared}
 
@@ -54,9 +58,12 @@ def _export_md(messages: list[dict]) -> str:
 
 @router.get("/api/conversation/export")
 def export_conversation(
-    format: str = Query(default="txt", pattern="^(txt|md)$")
+    request: Request,
+    format: str = Query(default="txt", pattern="^(txt|md)$"),
 ) -> Response:
-    messages = database.get_messages(limit=1000)
+    messages = database.get_messages(
+        limit=1000, owner_id=security.request_owner(request)
+    )
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     if format == "md":
         return Response(

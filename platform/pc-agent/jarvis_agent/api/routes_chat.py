@@ -14,6 +14,7 @@ from ..chat.service import run_chat
 from ..core import counters
 from ..store import database
 from ..voice.textmatch import is_enter_voice_command
+from .. import security
 
 logger = logging.getLogger("jarvis.api.chat")
 
@@ -32,13 +33,14 @@ async def chat(payload: ChatRequest, request: Request) -> dict:
 
     counters.bump_command_count()
     voice = getattr(request.app.state, "voice", None)
+    owner_id = security.request_owner(request)
 
     # ── "Jarvis sesli moda geç" — LLM'e gitmeden yerelde yakalanır ──
     if voice is not None and is_enter_voice_command(message):
-        database.add_message("user", message)
+        database.add_message("user", message, owner_id=owner_id)
         database.audit("chat.voice_enter_command", detail=message[:200])
         if voice.status().get("mic_available"):
-            database.add_message("assistant", "Tamamdır.")
+            database.add_message("assistant", "Tamamdır.", owner_id=owner_id)
             voice.start_voice_mode(
                 reason="text_command",
                 response="Sesli moddayım efendim, sizi dinliyorum.",
@@ -55,7 +57,7 @@ async def chat(payload: ChatRequest, request: Request) -> dict:
             "Üzgünüm efendim, bu cihazda mikrofon bulunamadığı için sesli moda "
             "geçemiyorum."
         )
-        database.add_message("assistant", reply)
+        database.add_message("assistant", reply, owner_id=owner_id)
         return {
             "reply": reply,
             "used_tools": [],
@@ -70,6 +72,6 @@ async def chat(payload: ChatRequest, request: Request) -> dict:
         request.app.state.llm,
         request.app.state.stats,
         source="text",
+        owner_id=owner_id,
     )
     return result
-

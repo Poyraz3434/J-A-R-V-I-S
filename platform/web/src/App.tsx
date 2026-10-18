@@ -100,7 +100,7 @@ export default function App() {
   );
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-x-hidden overflow-y-auto">
+    <div className="relative flex h-screen w-screen flex-col overflow-hidden">
       <TopBar
         online={jarvis.online}
         weather={jarvis.weather}
@@ -145,8 +145,8 @@ export default function App() {
       <main
         className={
           voiceSessionActive
-            ? "relative z-10 grid min-h-[calc(100vh-3.5rem)] place-items-center p-3"
-            : "relative z-10 grid flex-1 items-start gap-3 p-3 lg:grid-cols-[280px_minmax(0,1fr)_340px]"
+            ? "relative z-10 grid min-h-0 flex-1 place-items-center overflow-y-auto p-3"
+            : "relative z-10 grid min-h-0 flex-1 items-start gap-3 overflow-y-auto p-3 lg:grid-cols-[280px_minmax(0,1fr)_340px]"
         }
       >
         {/* Sol kolon — masaüstü, sesli oturumda gizli */}
