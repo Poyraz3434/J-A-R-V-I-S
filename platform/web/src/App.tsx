@@ -100,7 +100,7 @@ export default function App() {
   );
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-x-hidden">
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden overflow-y-auto">
       <TopBar
         online={jarvis.online}
         weather={jarvis.weather}
