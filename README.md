@@ -34,6 +34,14 @@ the services under `platform/`. To run a platform service, use its own entry
 point and requirements file; the root `main.py` continues to start the
 desktop application.
 
+To start the real FastAPI PC Agent from the repository root:
+```powershell
+.\start_fastapi.ps1
+```
+It serves the API at `http://127.0.0.1:8000` and the interactive
+documentation at `http://127.0.0.1:8000/api/docs`. The equivalent command is
+`python main.py --api`; use `--host` and `--port` to override the defaults.
+
 b) Configuration (.env)
 Create a .env file in the project root directory (or next to the compiled executable) to securely configure your API keys:
 JARVIS_GROQ_API_KEY=your_groq_api_key_here
@@ -46,4 +54,3 @@ J.A.R.V.I.S. v10.0 Apex is not a destination—it is the strongest milestone in 
 •	Cloud-synchronized memory layers and a modular plugin marketplace.
 This project is a testament to passion, coding discipline, and the determination to build the future today. It continues to evolve, expand, and shatter limits!
 🌐 Note on Language Support: Currently, J.A.R.V.I.S. v10.0 Apex features full native Turkish language support. In upcoming project iterations, we are expanding our global reach to include multi-language options such as English, Italian, French, and more!
-
