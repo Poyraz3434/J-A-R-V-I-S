@@ -15,6 +15,24 @@ export class ApiError extends Error {
 
 /** Faz 2: eşleşmiş cihaz belirteci — telefonda claim sonrası saklanır. */
 const TOKEN_KEY = "jarvis.device_token";
+const CLIENT_ID_KEY = "jarvis.client_id";
+function createClientId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+export const clientId = {
+  get: () => {
+    const existing = localStorage.getItem(CLIENT_ID_KEY);
+    if (existing) return existing;
+    const created = createClientId();
+    localStorage.setItem(CLIENT_ID_KEY, created);
+    return created;
+  },
+};
+
 export const deviceToken = {
   get: () => localStorage.getItem(TOKEN_KEY) ?? "",
   set: (t: string) => localStorage.setItem(TOKEN_KEY, t),
@@ -27,6 +45,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      "X-Client-ID": clientId.get(),
       ...(token ? { "X-Device-Token": token } : {}),
       ...(init?.headers ?? {}),
     },
@@ -42,6 +61,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(resp.status, detail);
   }
   return (await resp.json()) as T;
+}
+
+async function requestBlob(path: string): Promise<Blob> {
+  const token = deviceToken.get();
+  const resp = await fetch(path, {
+    headers: {
+      ...(token ? { "X-Device-Token": token } : {}),
+      "X-Client-ID": clientId.get(),
+    },
+  });
+  if (!resp.ok) throw new ApiError(resp.status, `HTTP ${resp.status}`);
+  return resp.blob();
 }
 
 export const api = {
@@ -108,7 +139,8 @@ export const api = {
     }),
 
   /** Dışa aktarma indirme bağlantısı (tarayıcı dosyayı indirir). */
-  exportUrl: (format: "txt" | "md") => `/api/conversation/export?format=${format}`,
+  exportConversation: (format: "txt" | "md") =>
+    requestBlob(`/api/conversation/export?format=${format}`),
 
   /** Faz 4: hatırlatıcılar. */
   reminders: (history = false) =>

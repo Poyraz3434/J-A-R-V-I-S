@@ -56,8 +56,14 @@ export default function App() {
   // Sesli oturum aktifken masaüstünde yalnızca orta alan görünür (gereklim 4).
   const voiceSessionActive = !!jarvis.voice?.session;
 
-  const handleExport = (format: "txt" | "md") => {
-    window.open(api.exportUrl(format), "_blank");
+  const handleExport = async (format: "txt" | "md") => {
+    const blob = await api.exportConversation(format);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `jarvis-conversation.${format}`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   // Kullanıcı etkileşimi: çalan alarmları susar (koşul 1 — active UI).
@@ -100,7 +106,7 @@ export default function App() {
   );
 
   return (
-    <div className="relative flex h-screen w-screen flex-col overflow-hidden">
+    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden overflow-y-auto">
       <TopBar
         online={jarvis.online}
         weather={jarvis.weather}
@@ -145,8 +151,8 @@ export default function App() {
       <main
         className={
           voiceSessionActive
-            ? "relative z-10 grid min-h-0 flex-1 place-items-center overflow-y-auto p-3"
-            : "relative z-10 grid min-h-0 flex-1 items-start gap-3 overflow-y-auto p-3 lg:grid-cols-[280px_minmax(0,1fr)_340px]"
+            ? "relative z-10 grid min-h-0 flex-1 place-items-center p-3"
+            : "relative z-10 grid flex-1 items-start gap-3 p-3 lg:grid-cols-[280px_minmax(0,1fr)_340px]"
         }
       >
         {/* Sol kolon — masaüstü, sesli oturumda gizli */}

@@ -10,7 +10,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
-import { deviceToken } from "../api/client";
+import { clientId, deviceToken } from "../api/client";
 import type {
   AppSettings,
   CameraStatus,
@@ -71,12 +71,15 @@ export function useJarvis() {
   const wsConnect = useCallback(() => {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
     const token = deviceToken.get();
-    const query = token ? `?token=${encodeURIComponent(token)}` : "";
-    const ws = new WebSocket(`${proto}//${location.host}/ws/stats${query}`);
+    const params = new URLSearchParams({ client_id: clientId.get() });
+    if (token) params.set("token", token);
+    const ws = new WebSocket(`${proto}//${location.host}/ws/stats?${params.toString()}`);
     wsRef.current = ws;
     ws.onmessage = (ev) => {
       try {
         const data = JSON.parse(ev.data) as SystemStats;
+        const incomingClientId = (data as { client_id?: string }).client_id;
+        if (incomingClientId && incomingClientId !== clientId.get()) return;
         if ((data as { type?: string }).type === "reminder") {
           // Hatırlatıcı olayı (created/fired/acked/deleted/expired) — istatistik
           // karesi değil; listeyi tazeleyip bu kareyi stats'a yazma.
@@ -455,4 +458,3 @@ export function useJarvis() {
 }
 
 export type JarvisState = ReturnType<typeof useJarvis>;
-

@@ -16,6 +16,7 @@ import socket
 import sqlite3
 import threading
 import time
+import re
 from contextlib import closing
 from pathlib import Path
 from typing import Any, Optional
@@ -32,6 +33,7 @@ _pair_failures = 0
 _pair_blocked_until = 0.0
 _PAIR_MAX_FAILURES = 5
 _PAIR_BLOCK_SECONDS = 60.0
+_CLIENT_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS devices (
@@ -172,6 +174,13 @@ def is_loopback(host: str) -> bool:
     return host in ("127.0.0.1", "::1", "localhost", "testclient")
 
 
+def _client_owner(value: Any) -> Optional[str]:
+    client_id = str(value or "").strip()
+    if not _CLIENT_ID_RE.fullmatch(client_id):
+        return None
+    return f"client:{client_id}"
+
+
 def request_owner(request: Any) -> str:
     """Return the stable data partition for an authenticated request.
 
@@ -180,7 +189,25 @@ def request_owner(request: Any) -> str:
     """
     device = getattr(getattr(request, "state", None), "device", None)
     device_id = str((device or {}).get("device_id") or "").strip()
-    return f"device:{device_id}" if device_id else "local"
+    if device_id:
+        return f"device:{device_id}"
+    headers = getattr(request, "headers", {})
+    client_owner = _client_owner(headers.get("x-client-id"))
+    if client_owner:
+        return client_owner
+    query_params = getattr(request, "query_params", {})
+    return _client_owner(query_params.get("client_id")) or "local"
+
+
+def websocket_owner(websocket: Any) -> tuple[str, str]:
+    """Return the validated session partition and its client id."""
+    client_id = str(websocket.query_params.get("client_id") or "").strip()
+    if not _CLIENT_ID_RE.fullmatch(client_id):
+        client_id = secrets.token_urlsafe(24)
+    device_info = getattr(getattr(websocket, "state", None), "device", None)
+    device_id = str((device_info or {}).get("device_id") or "").strip()
+    owner = f"device:{device_id}" if device_id else f"client:{client_id}"
+    return owner, client_id
 
 
 # ── Yardımcılar ──────────────────────────────────────────────────────────────

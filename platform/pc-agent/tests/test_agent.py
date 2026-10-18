@@ -167,6 +167,25 @@ def test_conversation_clear(client):
     assert client.get("/api/conversation").json()["count"] == 0
 
 
+def test_conversations_are_isolated_by_client_id(client):
+    alice = {"X-Client-ID": "client-alice-12345678"}
+    bob = {"X-Client-ID": "client-bob-12345678"}
+
+    client.post("/api/chat", json={"message": "Alice private"}, headers=alice)
+    client.post("/api/chat", json={"message": "Bob private"}, headers=bob)
+
+    alice_messages = client.get("/api/conversation", headers=alice).json()["messages"]
+    bob_messages = client.get("/api/conversation", headers=bob).json()["messages"]
+
+    assert all("Bob private" not in message["content"] for message in alice_messages)
+    assert all("Alice private" not in message["content"] for message in bob_messages)
+
+    cleared = client.delete("/api/conversation", headers=alice).json()["cleared"]
+    assert cleared >= 2
+    assert client.get("/api/conversation", headers=alice).json()["count"] == 0
+    assert client.get("/api/conversation", headers=bob).json()["count"] >= 2
+
+
 # ── 4. Offline / hata zarifliği ─────────────────────────────────────────────
 
 def test_weather_graceful_without_api_key(client):
@@ -311,5 +330,4 @@ def test_stats_stream_contains_mic_state(client):
         data = ws.receive_json()
         assert "voice" in data
         assert "mic" in data["voice"]
-
 
