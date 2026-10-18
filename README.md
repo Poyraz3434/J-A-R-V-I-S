@@ -42,6 +42,16 @@ It serves the API at `http://127.0.0.1:8000` and the interactive
 documentation at `http://127.0.0.1:8000/api/docs`. The equivalent command is
 `python main.py --api`; use `--host` and `--port` to override the defaults.
 
+### Render deployment
+
+The FastAPI app is a factory under `platform/pc-agent`, not `main:app`.
+Use this Render Start Command:
+```text
+uvicorn --factory jarvis_agent.app:create_app --app-dir platform/pc-agent --host 0.0.0.0 --port $PORT
+```
+The same configuration is available in `render.yaml`. The health check is
+`/api/health`, and the OpenAPI documentation is available at `/api/docs`.
+
 b) Configuration (.env)
 Create a .env file in the project root directory (or next to the compiled executable) to securely configure your API keys:
 JARVIS_GROQ_API_KEY=your_groq_api_key_here

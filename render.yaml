@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: jarvis-pc-agent
+    runtime: python
+    buildCommand: python -m pip install -r requirements.txt
+    startCommand: uvicorn --factory jarvis_agent.app:create_app --app-dir platform/pc-agent --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
