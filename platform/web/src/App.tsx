@@ -100,7 +100,7 @@ export default function App() {
   );
 
   return (
-    <div className="relative flex h-screen flex-col overflow-hidden">
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden">
       <TopBar
         online={jarvis.online}
         weather={jarvis.weather}
@@ -145,13 +145,13 @@ export default function App() {
       <main
         className={
           voiceSessionActive
-            ? "relative z-10 grid min-h-0 flex-1 place-items-center p-3"
-            : "relative z-10 grid min-h-0 flex-1 gap-3 p-3 lg:grid-cols-[280px_minmax(0,1fr)_340px]"
+            ? "relative z-10 grid min-h-[calc(100vh-3.5rem)] place-items-center p-3"
+            : "relative z-10 grid flex-1 items-start gap-3 p-3 lg:grid-cols-[280px_minmax(0,1fr)_340px]"
         }
       >
         {/* Sol kolon — masaüstü, sesli oturumda gizli */}
         {!voiceSessionActive && (
-          <div className="hidden min-h-0 space-y-2.5 overflow-y-auto pr-0.5 lg:block">{cards}</div>
+          <div className="hidden space-y-2.5 pr-0.5 lg:block">{cards}</div>
         )}
 
         {/* Orta alan */}
@@ -171,7 +171,7 @@ export default function App() {
 
         {/* Sağ panel — sohbet, sesli oturumda gizli */}
         {!voiceSessionActive && (
-          <div className="min-h-0 lg:block">
+          <div className="min-w-0 lg:block">
             <ConversationPanel
               ref={chatInputRef}
               messages={jarvis.messages}

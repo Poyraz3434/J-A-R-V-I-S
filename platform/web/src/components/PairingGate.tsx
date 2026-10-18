@@ -99,7 +99,7 @@ export default function PairingGate({ onPaired }: { onPaired: () => void }) {
   };
 
   return (
-    <div className="grid h-screen place-items-center p-4">
+    <div className="grid min-h-screen place-items-center p-4">
       <div
         className="w-full max-w-md rounded-2xl border p-6 text-center shadow-2xl"
         style={{ borderColor: "var(--border-strong)", background: "rgb(8 10 18 / 0.85)" }}

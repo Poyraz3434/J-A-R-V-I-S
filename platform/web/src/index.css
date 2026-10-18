@@ -44,7 +44,7 @@
 
 html,
 body {
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
@@ -52,8 +52,13 @@ body {
   background-color: var(--bg-page);
   color: var(--text-main);
   font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 /* Yumuşak yay-şekilli arka plan parıltıları (referans ekran görünümü) */
