@@ -128,7 +128,8 @@ def active_model() -> str:
 
 # ── Hava durumu ──────────────────────────────────────────────────────────────
 OWM_API_KEY = env("JARVIS_OWM_API_KEY") or env("OWM_API_KEY")
-DEFAULT_CITY = env("JARVIS_CITY", "Tuzla,TR")
+# Kişisel konum kodda gömülü DEĞİLDİR — .env'den okunur; boşsa 'no_city' döner.
+DEFAULT_CITY = env("JARVIS_CITY")
 
 # ── Relay (Faz 4: hatırlatıcılar relay'de yaşar) ─────────────────────────────
 # Boş bırakılırsa hatırlatıcı modülü devre dışı kalır (yerel test kolaylığı).

@@ -32,6 +32,8 @@ def get(city: Optional[str] = None, force: bool = False) -> dict[str, Any]:
     api_key = config.OWM_API_KEY
     if not api_key:
         return _unavailable("no_api_key")
+    if not city:
+        return _unavailable("no_city")
 
     if not force:
         with _lock:

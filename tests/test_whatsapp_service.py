@@ -1,4 +1,5 @@
 import os
+import sys
 import unittest
 from unittest import mock
 
@@ -9,7 +10,11 @@ class WhatsAppServiceTests(unittest.TestCase):
     def test_unconfigured_message_fails_without_network(self):
         with mock.patch.dict(os.environ, {}, clear=True):
             with mock.patch("urllib.request.urlopen") as urlopen:
-                result = whatsapp.send_message("+905551112233", "selam")
+                # pywhatkit kuruluysa fallback gerçek WhatsApp gönderimi başlatır;
+                # testin amacı yapılandırılmamış durumda HARİCİ etki olmamasıdır,
+                # bu yüzden pywhatkit import'u da engellenir (None → ImportError).
+                with mock.patch.dict(sys.modules, {"pywhatkit": None}):
+                    result = whatsapp.send_message("+905551112233", "selam")
         self.assertFalse(result["ok"])
         urlopen.assert_not_called()
 

@@ -51,7 +51,9 @@ from config import (
     OWM_API_KEY,
     PDF_STORE,
     PROFILE_FILE,
+    SMTP_HOST,
     SMTP_PASS,
+    SMTP_PORT,
     SMTP_USER,
     STYLE_PATH,
     safe_read_json,
@@ -5661,6 +5663,8 @@ class JarvisWindow(QMainWindow):
     def _print_epson(self, path):
         if not SMTP_USER:
             return "JARVIS_SMTP_USER ortam değişkeni ayarlanmamış."
+        if not EPSON_EMAIL:
+            return "JARVIS_EPSON_EMAIL ortam değişkeni ayarlanmamış."
         try:
             resolved = safe_path_under_root(path, Path.home())
             if resolved is None or not resolved.exists() or resolved.suffix.lower() not in {".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".txt"}:
@@ -5672,7 +5676,7 @@ class JarvisWindow(QMainWindow):
             encoders.encode_base64(part)
             part.add_header("Content-Disposition", f'attachment;filename="{resolved.name}"')
             msg.attach(part)
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) as s:
                 s.login(SMTP_USER, SMTP_PASS); s.send_message(msg)
             return f"Yazıcıya gönderildi: {resolved.name}"
         except Exception as e:

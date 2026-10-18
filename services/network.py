@@ -120,8 +120,10 @@ def get_cached_json(
 def get_weather() -> dict:
     if not OWM_API_KEY:
         return {"temp": "?", "desc": "API yok", "humidity": "?", "rain_prob": "Bilinmiyor"}
+    if not CITY.strip():
+        return {"temp": "?", "desc": "JARVIS_CITY ayarlanmamış", "humidity": "?", "rain_prob": "?"}
     try:
-        city_query = quote(CITY.strip() or "Tuzla,TR")
+        city_query = quote(CITY.strip())
         url = (
             f"https://api.openweathermap.org/data/2.5/weather"
             f"?q={city_query}&appid={quote(OWM_API_KEY)}&units=metric&lang=tr"

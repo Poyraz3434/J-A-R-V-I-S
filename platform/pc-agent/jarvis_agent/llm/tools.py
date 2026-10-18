@@ -39,14 +39,14 @@ TOOL_SPECS: list[dict[str, Any]] = [
             "name": "get_weather",
             "description": (
                 "Şehir için güncel hava durumunu getirir. Şehir verilmezse "
-                "ayarlanmış varsayılan şehir kullanılır. Örnek: 'Tuzla,TR'."
+                "ayarlanmış varsayılan şehir kullanılır. Örnek: 'Istanbul,TR'."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "city": {
                         "type": "string",
-                        "description": "Hava durumu sorgulanacak şehir (örn. 'Tuzla,TR').",
+                        "description": "Hava durumu sorgulanacak şehir (örn. 'Istanbul,TR').",
                     }
                 },
                 "required": [],

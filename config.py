@@ -125,8 +125,16 @@ GEMINI_MODEL = "-".join(
 OWM_API_KEY = _env("JARVIS_OWM_API_KEY") or _env("OWM_API_KEY")
 SMTP_USER = _env("JARVIS_SMTP_USER")
 SMTP_PASS = _env("JARVIS_SMTP_PASS")
-EPSON_EMAIL = _env("JARVIS_EPSON_EMAIL", "seu8720hi7n462@print.epsonconnect.com")
-CITY = _env("JARVIS_CITY", "Tuzla,TR")
+# SMTP sunucusu: varsayılan Gmail'in herkese açık adresidir; .env ile override edilebilir.
+SMTP_HOST = _env("JARVIS_SMTP_HOST", "smtp.gmail.com")
+try:
+    SMTP_PORT = int(_env("JARVIS_SMTP_PORT", "465"))
+except ValueError:
+    SMTP_PORT = 465
+# Kişisel bilgiler (yazıcı e-postası, konum) YALNIZCA .env'den okunur;
+# kod içinde varsayılan değer gömülü DEĞİLDİR (bkz. .env.example).
+EPSON_EMAIL = _env("JARVIS_EPSON_EMAIL")
+CITY = _env("JARVIS_CITY")
 
 DB_PATH = str(APP_DATA_DIR / "jarvis_memory.db")
 STYLE_PATH = str(APP_DATA_DIR / "user_style.json")
