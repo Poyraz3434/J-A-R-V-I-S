@@ -191,6 +191,7 @@ export default function App() {
         settings={jarvis.settings}
         online={jarvis.online}
         health={jarvis.health}
+        integrations={jarvis.integrations}
         voice={jarvis.voice}
         onClose={() => setSettingsOpen(false)}
         onSave={jarvis.saveSettings}

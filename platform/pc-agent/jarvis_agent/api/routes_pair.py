@@ -66,6 +66,7 @@ def qr_svg(request: Request) -> Response:
 
 @router.get("/api/pair/status")
 def status(request: Request) -> dict:
+    _require_loopback(request)
     info = security.pending_code_info()
     return {
         "pending": bool(info.get("active")),

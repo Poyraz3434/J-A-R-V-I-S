@@ -104,7 +104,7 @@ export class VerificationSystem {
 
   private validateAnswer(): void {
     const normalized = this.state.userInput?.toLowerCase() ?? "";
-    const isValid = normalized.includes("verify") || normalized.includes("onay") || normalized.includes("continue");
+    const isValid = ["verify", "onay", "continue"].includes(normalized);
 
     if (isValid) {
       this.state.status = "verified";

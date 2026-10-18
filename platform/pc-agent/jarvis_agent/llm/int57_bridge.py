@@ -11,11 +11,14 @@ from __future__ import annotations
 
 import inspect
 import json
+import os
 from typing import Any, Callable, Optional
 
 # Bir aracın "yapılandırılmış" sayılması için modül fonksiyonu yeterli;
 # send_file gibi kullanıcı onaylı işlemler bağlama (binding) ile açılır.
 INT57_BINDINGS: dict[str, Callable[..., Any]] = {}
+_AUDIT_CALLBACK: Optional[Callable[[str, str], Any]] = None
+_OUTBOUND_NAMES = {"send_whatsapp_message", "send_email"}
 
 # Bağlam önbelleği (örn. haber başlıklarının kısa süreli saklanması).
 # teardown/testler bu alanı temizleyebilir.
@@ -112,6 +115,18 @@ def inject_bindings(bindings: dict[str, Callable[..., Any]]) -> None:
         INT57_BINDINGS.update(bindings)
 
 
+def set_audit_callback(callback: Optional[Callable[[str, str], Any]]) -> None:
+    """Dışa veri gönderen araçların olaylarını uygulama audit katmanına bağlar."""
+    global _AUDIT_CALLBACK
+    _AUDIT_CALLBACK = callback
+
+
+def _outbound_enabled() -> bool:
+    return os.getenv("JARVIS_ALLOW_OUTBOUND_MESSAGES", "0").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+
+
 def resolutions() -> dict[str, Optional[Callable[..., Any]]]:
     """Araç adı → varsayılan modül fonksiyonu (None: bağlama gerekli)."""
     from ..integrations import files, home, mail, news, whatsapp
@@ -193,7 +208,18 @@ async def execute_int57_tool(name: str, arguments: dict[str, Any]) -> str:
              "hint": ".env ayarlarını tamamlayın ya da uygulama bağlamasını ekleyin"}
         )
 
+    # Gerçek ağ gönderimleri opt-in'dir. Test/app binding'leri açıkça bağlanmış
+    # onaylı adaptörler kabul edilir; varsayılan entegrasyonlar .env ile açılır.
+    if name in _OUTBOUND_NAMES and func is table.get(name) and not _outbound_enabled():
+        return json.dumps(
+            {"ok": False, "error": "Dışa mesaj gönderimi devre dışı.",
+             "hint": "JARVIS_ALLOW_OUTBOUND_MESSAGES=1 ayarlayın."},
+            ensure_ascii=False,
+        )
+
     call_args = _filter_kwargs(name, func, dict(arguments or {}))
+    if name in _OUTBOUND_NAMES and _AUDIT_CALLBACK is not None:
+        _AUDIT_CALLBACK(name, json.dumps(call_args, ensure_ascii=False, default=str)[:500])
     try:
         result = func(**call_args)
         if inspect.isawaitable(result):

@@ -60,6 +60,7 @@ python build_installer.py   # sürüm senkronu + PyInstaller + Inno Setup (tek k
 | `JARVIS_GROQ_MODEL` | — | Varsayılan: `openai/gpt-oss-20b` |
 | `JARVIS_OWM_API_KEY` | — | Hava durumu (OpenWeatherMap) |
 | `JARVIS_SMTP_USER` / `JARVIS_SMTP_PASS` | — | E-posta gönderimi |
+| `JARVIS_WA_PHONE` / `JARVIS_WA_APIKEY` | — | WhatsApp CallMeBot gönderimi |
 | `JARVIS_EPSON_EMAIL` | — | Epson Connect yazdırma adresi |
 | `JARVIS_CITY` | — | Varsayılan: `Tuzla,TR` |
 | `JARVIS_UPDATE_URL` | — | Otomatik güncelleme denetimi için "latest release" API adresi |

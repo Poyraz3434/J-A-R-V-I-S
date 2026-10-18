@@ -89,14 +89,14 @@ def fetch_unread(limit: int = 5) -> dict:
 def can_send() -> bool:
     host = config.env("JARVIS_SMTP_HOST", "")
     user = config.env("JARVIS_SMTP_USER", "")
-    password = config.env("JARVIS_SMTP_PASSWORD", "")
+    password = config.env("JARVIS_SMTP_PASSWORD", "") or config.env("JARVIS_SMTP_PASS", "")
     return bool(host and user and password)
 
 
 def send_available() -> bool:
     host = config.env("JARVIS_SMTP_HOST", "")
     user = config.env("JARVIS_SMTP_USER", "")
-    password = config.env("JARVIS_SMTP_PASSWORD", "")
+    password = config.env("JARVIS_SMTP_PASSWORD", "") or config.env("JARVIS_SMTP_PASS", "")
     return bool(host and user and password)
 
 
@@ -112,7 +112,7 @@ def send_email(to: str, subject: str, body: str) -> dict:
     host = config.env("JARVIS_SMTP_HOST", "")
     port = int(config.env("JARVIS_SMTP_PORT", "587") or 587)
     user = config.env("JARVIS_SMTP_USER", "")
-    password = config.env("JARVIS_SMTP_PASSWORD", "")
+    password = config.env("JARVIS_SMTP_PASSWORD", "") or config.env("JARVIS_SMTP_PASS", "")
     if not (host and user and password):
         return {
             "error": "E-posta gönderimi yapılandırılmadı. "

@@ -72,8 +72,8 @@ export interface CameraStatus {
 
 /** Faz 3: sesli mod durumu — /api/voice/status ve /ws/stats içindeki "voice". */
 export interface VoiceStatus {
-  mic: "off" | "wake" | "listening" | "thinking" | "speaking" | "error";
-  session: boolean;
+  mic: "off" | "wake" | "voice";
+  session: null | "listening" | "thinking" | "speaking";
   mic_available: boolean;
   local_stt: boolean;
   clap_enabled: boolean;
@@ -96,7 +96,7 @@ export interface Reminder {
   id: number;
   title: string;
   due_at: string;
-  status: "pending" | "firing" | "acknowledged" | "expired";
+  status: "pending" | "firing" | "acked" | "expired";
   repeat_count: number;
   last_fired_at: string | null;
   created_at: string;

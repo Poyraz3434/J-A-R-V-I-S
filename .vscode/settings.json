@@ -1,3 +1,40 @@
 {
-    "python-envs.defaultEnvManager": "ms-python.python:system"
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "files.watcherExclude": {
+        "**/.git/**": true,
+        "**/.venv/**": true,
+        "**/venv/**": true,
+        "**/node_modules/**": true,
+        "**/__pycache__/**": true,
+        "**/models/**": true,
+        "**/dist/**": true,
+        "**/build/**": true,
+        "**/Output/**": true,
+        "**/.pytest_cache/**": true,
+        "**/.ruff_cache/**": true
+    },
+    "search.exclude": {
+        "**/.git/**": true,
+        "**/.venv/**": true,
+        "**/venv/**": true,
+        "**/node_modules/**": true,
+        "**/__pycache__/**": true,
+        "**/models/**": true,
+        "**/dist/**": true,
+        "**/build/**": true,
+        "**/Output/**": true,
+        "**/.pytest_cache/**": true,
+        "**/.ruff_cache/**": true,
+        "**/*.bin": true,
+        "**/*.gguf": true,
+        "**/*.pth": true
+    },
+    "files.exclude": {
+        "**/.venv": true,
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/build": true,
+        "**/Output": true
+    },
+    "typescript.tsserver.maxTsServerMemory": 1024
 }

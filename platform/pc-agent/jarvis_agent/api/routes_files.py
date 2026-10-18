@@ -27,9 +27,13 @@ def list_files() -> dict:
 
 @router.post("/api/files/upload")
 async def upload_file(file: UploadFile = File(...)) -> dict:
-    data = await file.read()
+    if file.size is not None and file.size > files_module.MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Dosya 100 MB sınırını aşıyor.")
+    data = await file.read(files_module.MAX_UPLOAD_BYTES + 1)
     if not data:
         raise HTTPException(status_code=422, detail="Boş dosya.")
+    if len(data) > files_module.MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Dosya 100 MB sınırını aşıyor.")
     try:
         result = files_module.write_file(file.filename or "dosya", data)
     except ValueError as exc:

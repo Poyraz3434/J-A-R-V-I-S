@@ -10,6 +10,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
+import { deviceToken } from "../api/client";
 import type {
   AppSettings,
   CameraStatus,
@@ -23,11 +24,15 @@ import type {
 
 const OFFLINE_NOTE =
   "JARVIS backend çevrimdışı. Bağlantı yeniden kurulana kadar bazı özellikler kullanılamaz.";
+const MAX_CLIENT_MESSAGES = 200;
 
 export function useJarvis() {
   const [online, setOnline] = useState(false);
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [health, setHealth] = useState<HealthInfo | null>(null);
+  const [integrations, setIntegrations] = useState<
+    Record<string, { configured: boolean; connected?: boolean; reachable?: boolean; detail?: string }> | null
+  >(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState(false);
@@ -50,6 +55,7 @@ export function useJarvis() {
   const [voiceError, setVoiceError] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryRef = useRef(0);
   const onlineRef = useRef(false);
   const offlineNoteShown = useRef(false);
@@ -64,7 +70,9 @@ export function useJarvis() {
 
   const wsConnect = useCallback(() => {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
-    const ws = new WebSocket(`${proto}//${location.host}/ws/stats`);
+    const token = deviceToken.get();
+    const query = token ? `?token=${encodeURIComponent(token)}` : "";
+    const ws = new WebSocket(`${proto}//${location.host}/ws/stats${query}`);
     wsRef.current = ws;
     ws.onmessage = (ev) => {
       try {
@@ -86,14 +94,20 @@ export function useJarvis() {
     ws.onclose = () => {
       markOnline(false);
       retryRef.current = Math.min(retryRef.current + 1, 5);
-      setTimeout(wsConnect, Math.min(3000 * retryRef.current, 15000));
+      retryTimerRef.current = setTimeout(
+        wsConnect,
+        Math.min(3000 * retryRef.current, 15000)
+      );
     };
     ws.onerror = () => ws.close();
   }, [markOnline]);
 
   useEffect(() => {
     wsConnect();
-    return () => wsRef.current?.close();
+    return () => {
+      wsRef.current?.close();
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
   }, [wsConnect]);
 
   // REST yedeği: WS yoklarken de online tespit edebilsin
@@ -117,6 +131,7 @@ export function useJarvis() {
     const tick = async () => {
       try {
         setHealth(await api.health());
+        setIntegrations((await api.integrations()).integrations);
       } catch {
         /* offline */
       }
@@ -129,7 +144,7 @@ export function useJarvis() {
   useEffect(() => {
     api
       .conversation()
-      .then((r) => setMessages(r.messages))
+      .then((r) => setMessages(r.messages.slice(-MAX_CLIENT_MESSAGES)))
       .catch(() => {});
     api
       .settings()
@@ -148,8 +163,7 @@ export function useJarvis() {
   useEffect(() => {
     if (!online && !offlineNoteShown.current) {
       offlineNoteShown.current = true;
-      setMessages((prev) => [
-        ...prev,
+      setMessages((prev) => [...prev.slice(-(MAX_CLIENT_MESSAGES - 1)),
         {
           id: `offline-${Date.now()}`,
           role: "system",
@@ -182,8 +196,7 @@ export function useJarvis() {
       if (!trimmed || sending) return;
       setSending(true);
       setLastError(null);
-      setMessages((prev) => [
-        ...prev,
+      setMessages((prev) => [...prev.slice(-(MAX_CLIENT_MESSAGES - 1)),
         {
           id: `local-${Date.now()}`,
           role: "user",
@@ -193,8 +206,7 @@ export function useJarvis() {
       ]);
       try {
         const r = await api.sendChat(trimmed);
-        setMessages((prev) => [
-          ...prev,
+        setMessages((prev) => [...prev.slice(-(MAX_CLIENT_MESSAGES - 1)),
           {
             id: `reply-${Date.now()}`,
             role: "assistant",
@@ -223,7 +235,7 @@ export function useJarvis() {
   const reloadConversation = useCallback(async () => {
     try {
       const r = await api.conversation();
-      setMessages(r.messages);
+      setMessages(r.messages.slice(-MAX_CLIENT_MESSAGES));
     } catch {
       /* offline */
     }
@@ -404,6 +416,7 @@ export function useJarvis() {
     online,
     stats,
     health,
+    integrations,
     messages,
     sending,
     lastError,

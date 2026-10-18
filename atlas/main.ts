@@ -49,15 +49,16 @@ export class AtlasSystem {
     features: Partial<DetectionFeatures> = {},
     userId = "local-user",
   ): Promise<T> {
-    const cached = this.cache.get(key);
-    if (cached !== undefined) {
-      Logger.info(`Cache hit: ${key}`);
-      return cached as T;
-    }
-
     const securityDecision = this.security.verify({ userId, trustScore: 0.9 }, key);
     if (!securityDecision.allowed) {
       throw new Error(securityDecision.reason ?? "Security policy blocked this request.");
+    }
+
+    const cacheKey = `${userId}:${key}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached !== undefined) {
+      Logger.info(`Cache hit: ${cacheKey}`);
+      return cached as T;
     }
 
     return this.queue.enqueue(async () => {
@@ -91,7 +92,7 @@ export class AtlasSystem {
         Logger.warn(`Response time limit exceeded: ${elapsed}ms for ${key}`);
       }
 
-      this.cache.set(key, result, ATLAS_CONFIG.cacheTtlMs);
+      this.cache.set(cacheKey, result, ATLAS_CONFIG.cacheTtlMs);
       this.memory.addFact(`Request completed for ${key} with confidence ${detection.confidence}.`, {
         key,
         confidence: detection.confidence,

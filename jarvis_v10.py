@@ -182,6 +182,7 @@ from services.web_automation import (
 from services.web_automation import (
     open_url as open_web_url,
 )
+from services.whatsapp import send_message as send_whatsapp_message
 from status_border import AppState, StatusBorderWidget, StatusColorController
 from troubleshoot_flow import FlowState, create_flow
 from window_manager import ActiveWindow, WindowManager
@@ -1239,22 +1240,16 @@ def contacts_find(name: str) -> str | None:
     return None
 
 def whatsapp_send(phone: str, message: str) -> str:
-    if not WA_OK:
-        return "pywhatkit kurulu değil: pip install pywhatkit"
-    safe_phone = re.sub(r"[^0-9+]", "", str(phone or ""))
-    safe_message = safe_user_text(message, 500)
-    if not safe_phone or len(safe_phone) < 10:
-        return "Geçersiz telefon numarası."
-    try:
-        import pywhatkit as kit
-
-        now = datetime.datetime.now()
-        h, m = now.hour, now.minute + 2
-        if m >= 60: h, m = h+1, m-60
-        kit.sendwhatmsg(safe_phone, safe_message, h, m, wait_time=15, tab_close=True)
-        return f"Mesaj {h}:{m:02d}'de gönderilecek, Efendim."
-    except Exception as e:
-        return f"WhatsApp hatası: {e}"
+    result = send_whatsapp_message(phone, safe_user_text(message, 500))
+    if result.get("ok"):
+        provider = result.get("provider", "WhatsApp")
+        scheduled = result.get("scheduled")
+        return (
+            f"Mesaj {scheduled}'de gönderilecek, Efendim."
+            if scheduled
+            else f"WhatsApp mesajı gönderildi ({provider}), Efendim."
+        )
+    return str(result.get("error") or "WhatsApp mesajı gönderilemedi.")
 
 # ══════════════════════════════════════════════════════════════════════════
 # MASAÜSTÜ KISAYOLU

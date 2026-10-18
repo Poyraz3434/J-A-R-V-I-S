@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 
 import uvicorn
 
@@ -22,6 +23,11 @@ def main() -> None:
     parser.add_argument("--host", default=config.BIND_HOST)
     parser.add_argument("--port", type=int, default=config.BIND_PORT)
     args = parser.parse_args()
+
+    # Security and pairing URL generation read these values from environment
+    # configuration, so CLI overrides must update the same source of truth.
+    os.environ["JARVIS_BIND"] = args.host
+    os.environ["JARVIS_PORT"] = str(args.port)
 
     app = create_app()
 

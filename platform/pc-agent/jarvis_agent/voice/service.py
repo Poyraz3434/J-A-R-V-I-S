@@ -202,6 +202,7 @@ class VoiceService:
         if self._mic is not None:
             self._mic.stop()
             self._mic = None
+        stt_module.unload_local_model()
         self._set(state="off", session=None, error=None)
         return self.status()
 

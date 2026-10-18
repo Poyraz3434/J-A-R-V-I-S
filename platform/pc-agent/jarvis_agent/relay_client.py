@@ -77,7 +77,7 @@ class RelayClient:
         if not self.connected or self._ws is None:
             return
         try:
-            asyncio.get_running_loop().create_task(self._ws.send_text(json.dumps(message)))
+            asyncio.get_running_loop().create_task(self._ws.send(json.dumps(message)))
         except RuntimeError:
             pass
 
@@ -85,11 +85,17 @@ class RelayClient:
     async def _run(self) -> None:
         import websockets
 
-        sep = "&" if "?" in self._url else "?"
-        target = f"{self._url}{sep}token={urllib.parse.quote(self._token)}" if self._token else self._url
+        target = self._url
+        connect_options = {
+            "open_timeout": 10,
+            "additional_headers": (
+                {"Authorization": f"Bearer {self._token}"}
+                if self._token else {}
+            ),
+        }
         while not self._stopping:
             try:
-                async with websockets.connect(target, open_timeout=10) as ws:
+                async with websockets.connect(target, **connect_options) as ws:
                     self._ws = ws
                     self._connected.set()
                     logger.info("Relay bağlandı: %s", self._url)
@@ -101,7 +107,7 @@ class RelayClient:
                         if isinstance(msg, dict) and msg.get("type") in COMMAND_TYPES:
                             reply = await asyncio.to_thread(self._safe_handle, msg)
                             if reply is not None:
-                                await ws.send_text(json.dumps(reply))
+                                await ws.send(json.dumps(reply))
             except asyncio.CancelledError:
                 raise
             except Exception as exc:

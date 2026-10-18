@@ -7,6 +7,7 @@ interface Props {
   settings: AppSettings | null;
   online: boolean;
   health: { llm_provider: string; llm_ready: boolean } | null;
+  integrations: Record<string, { configured: boolean; connected?: boolean; reachable?: boolean; detail?: string }> | null;
   voice: VoiceStatus | null;
   onClose: () => void;
   onSave: (patch: { background_color?: string; city?: string }) => Promise<unknown>;
@@ -28,7 +29,7 @@ const inputCls = "w-full rounded-lg border bg-black/30 px-3 py-2 text-sm outline
 const inputStyle = { borderColor: "var(--border)" };
 
 export default function SettingsModal({
-  open, settings, online, health, voice, onClose, onSave, onSaveVoice,
+  open, settings, online, health, integrations, voice, onClose, onSave, onSaveVoice,
 }: Props) {
   const [color, setColor] = useState<AppSettings["background_color"]>("blue");
   const [city, setCity] = useState("");
@@ -244,6 +245,25 @@ export default function SettingsModal({
             <span className="text-slate-200">
               {health ? (health.llm_ready ? health.llm_provider : `${health.llm_provider} (demo)`) : "--"}
             </span>
+          </div>
+          <div className="mt-2 border-t pt-2" style={{ borderColor: "var(--border)" }}>
+            {[
+              ["WhatsApp", "whatsapp"],
+              ["E-posta", "smtp"],
+              ["Home Assistant", "home_assistant"],
+              ["Relay", "relay"],
+            ].map(([label, key]) => {
+              const item = integrations?.[key];
+              const active = !!item?.configured && (item.connected ?? item.reachable ?? true);
+              return (
+                <div className="mt-1 flex justify-between" key={key}>
+                  <span>{label}</span>
+                  <span style={{ color: active ? "rgb(74 222 128)" : "rgb(148 163 184)" }}>
+                    {active ? "Hazır" : "Kapalı"}
+                  </span>
+                </div>
+              );
+            })}
           </div>
           <div className="mt-1 flex justify-between">
             <span>Mikrofon</span>

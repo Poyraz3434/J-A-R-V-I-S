@@ -50,17 +50,16 @@ function voicePhase(
   base: LogoState
 ): { phase: LogoState; text: string | null } {
   if (!voice || voice.mic === "off") return { phase: base, text: null };
-  switch (voice.mic) {
-    case "wake":
-      return { phase: "idle", text: "Listening for wake word..." };
+  if (voice.mic === "wake") {
+    return { phase: "idle", text: "Listening for wake word..." };
+  }
+  switch (voice.session) {
     case "listening":
       return { phase: "idle", text: "Sizi dinliyorum efendim..." };
     case "thinking":
       return { phase: "thinking", text: "Düşünüyor..." };
     case "speaking":
       return { phase: "speaking", text: "Konuşuyor..." };
-    case "error":
-      return { phase: base, text: voice.error ?? "Ses hatası" };
     default:
       return { phase: base, text: null };
   }

@@ -46,6 +46,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   health: () => request<import("../types").HealthInfo>("/api/health"),
+  integrations: () =>
+    request<{ integrations: Record<string, { configured: boolean; connected?: boolean; reachable?: boolean; detail?: string }> }>(
+      "/api/integrations"
+    ),
   stats: () => request<import("../types").SystemStats>("/api/system/stats"),
   weather: (refresh = false) =>
     request<import("../types").WeatherInfo>(

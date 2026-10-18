@@ -17,6 +17,12 @@ node_modules/
 npm-debug.log*
 package-lock.json
 
+# Local model artifacts
+models/
+*.bin
+*.gguf
+*.pth
+
 # Build / packaging outputs
 build/
 dist/

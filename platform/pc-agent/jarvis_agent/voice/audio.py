@@ -16,6 +16,7 @@ logger = logging.getLogger("jarvis.voice.audio")
 
 SAMPLE_RATE = 16000
 BLOCK_SIZE = 1600  # 100 ms — VAD için yeterince ince, CPU dostu
+AUDIO_QUEUE_MAX_BLOCKS = 50  # En fazla 5 saniyelik ses; tüketici geride kalırsa düşür.
 
 try:
     import sounddevice as sd  # type: ignore
@@ -54,7 +55,7 @@ class MicrophoneStream:
     def __init__(self, device: Optional[int] = None) -> None:
         self.device = device
         self._stream = None
-        self._queue: "queue.Queue[np.ndarray]" = queue.Queue()
+        self._queue: "queue.Queue[np.ndarray]" = queue.Queue(maxsize=AUDIO_QUEUE_MAX_BLOCKS)
         self._lock = threading.Lock()
         self._active = False
 
@@ -106,7 +107,14 @@ class MicrophoneStream:
     def _on_block(self, indata, frames, time_info, status) -> None:  # noqa: ANN001
         if status:
             logger.debug("Ses akışı uyarısı: %s", status)
-        self._queue.put(indata[:, 0].copy())
+        try:
+            self._queue.put_nowait(indata[:, 0].copy())
+        except queue.Full:
+            try:
+                self._queue.get_nowait()
+                self._queue.put_nowait(indata[:, 0].copy())
+            except queue.Empty:
+                pass
 
     def read_block(self, timeout: float = 1.0) -> Optional[np.ndarray]:
         """Bir blok (100 ms) okur; timeout'ta None döner."""

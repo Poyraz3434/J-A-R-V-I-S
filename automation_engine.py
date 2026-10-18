@@ -383,6 +383,12 @@ class AutomationEngine(QObject):
     def _run_open_url(self, url: str):
         self._set_state(AutomationState.RUNNING, f"URL açılıyor: {url}")
         try:
+            from services.web_automation import _validate_url
+
+            validation_error = _validate_url(url)
+            if validation_error:
+                self.message.emit(validation_error)
+                return
             driver = self._get_driver()
             if self._run_step(lambda: driver.get(url), f"Tarayıcıda açılıyor: {url}"):
                 self.message.emit(f"✓ URL açıldı: {url}")

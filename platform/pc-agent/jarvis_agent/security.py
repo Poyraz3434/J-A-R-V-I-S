@@ -24,9 +24,14 @@ from . import config
 
 _CODE_TTL_SECONDS = 300          # eşleştirme kodu 5 dk geçerli
 _DB_LOCK = threading.Lock()
+_PAIR_LOCK = threading.Lock()
 _DB_PATH: Optional[Path] = None
 
 _pending_code: dict[str, Any] = {}  # {"code": ..., "expires_at": float}
+_pair_failures = 0
+_pair_blocked_until = 0.0
+_PAIR_MAX_FAILURES = 5
+_PAIR_BLOCK_SECONDS = 60.0
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS devices (
@@ -61,10 +66,14 @@ def _now_iso() -> str:
 
 def start_pairing() -> dict[str, Any]:
     """Yeni 6 haneli kod üretir (eskisi geçersiz olur)."""
+    global _pair_failures, _pair_blocked_until
     code = f"{secrets.randbelow(1_000_000):06d}"
-    _pending_code.clear()
-    _pending_code["code"] = code
-    _pending_code["expires_at"] = time.time() + _CODE_TTL_SECONDS
+    with _PAIR_LOCK:
+        _pending_code.clear()
+        _pending_code["code"] = code
+        _pending_code["expires_at"] = time.time() + _CODE_TTL_SECONDS
+        _pair_failures = 0
+        _pair_blocked_until = 0.0
     return {"code": code, "expires_in": _CODE_TTL_SECONDS}
 
 
@@ -80,19 +89,30 @@ def pending_code_info() -> dict[str, Any]:
 
 def claim(code: str, device_name: str) -> Optional[dict[str, Any]]:
     """Geçerli kodu cihaz token'ıyla takas eder; kod tek kullanımlıktır."""
-    if not _pending_code or _pending_code.get("expires_at", 0) < time.time():
-        return None
-    if not secrets.compare_digest(str(code).strip(), str(_pending_code.get("code", ""))):
-        return None
-    _pending_code.clear()
+    global _pair_failures, _pair_blocked_until
+    with _PAIR_LOCK:
+        now = time.time()
+        if now < _pair_blocked_until:
+            return None
+        expected = str(_pending_code.get("code", ""))
+        if not _pending_code or _pending_code.get("expires_at", 0) < now:
+            return None
+        if not secrets.compare_digest(str(code).strip(), expected):
+            _pair_failures += 1
+            if _pair_failures >= _PAIR_MAX_FAILURES:
+                _pair_blocked_until = now + _PAIR_BLOCK_SECONDS
+                _pair_failures = 0
+            return None
+        _pending_code.clear()
+        _pair_failures = 0
 
-    token = secrets.token_urlsafe(32)
-    device = {
-        "id": secrets.token_hex(4),
-        "name": (device_name or "cihaz").strip()[:40] or "cihaz",
-        "token_hash": _hash(token),
-        "created_at": _now_iso(),
-    }
+        token = secrets.token_urlsafe(32)
+        device = {
+            "id": secrets.token_hex(4),
+            "name": (device_name or "cihaz").strip()[:40] or "cihaz",
+            "token_hash": _hash(token),
+            "created_at": _now_iso(),
+        }
     with _DB_LOCK, closing(_connect()) as conn, conn:
         conn.execute(
             "INSERT INTO devices (id, name, token_hash, created_at) VALUES (?, ?, ?, ?)",
@@ -139,11 +159,13 @@ def _hash(token: str) -> str:
 
 
 def required() -> bool:
-    """Cihaz doğrulaması şart mı? (0.0.0.0 bind → otomatik şart)"""
-    return (
-        config.env("JARVIS_PAIRING_REQUIRED") == "1"
-        or config.env("JARVIS_BIND") == "0.0.0.0"
-    )
+    """Cihaz doğrulaması şart mı? Loopback dışındaki tüm bind adresleri korunur."""
+    bind = config.env("JARVIS_BIND", "127.0.0.1").strip().lower()
+    return config.env("JARVIS_PAIRING_REQUIRED") == "1" or bind not in {
+        "127.0.0.1",
+        "::1",
+        "localhost",
+    }
 
 
 def is_loopback(host: str) -> bool:

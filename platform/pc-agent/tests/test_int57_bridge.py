@@ -31,6 +31,15 @@ def test_bilinmeyen_arac_hata_dondurur():
     assert data["ok"] is False and "unknown" in data["error"]
 
 
+def test_outbound_mesajlar_opt_in_olmadan_gonderilmez(monkeypatch):
+    monkeypatch.delenv("JARVIS_ALLOW_OUTBOUND_MESSAGES", raising=False)
+    ib.inject_bindings({})
+    out = _run(ib.execute_int57_tool("send_whatsapp_message", {"message": "selam"}))
+    data = json.loads(out)
+    assert data["ok"] is False
+    assert "devre dışı" in data["error"]
+
+
 def test_cozumlenemeyen_arac_zarif_doner():
     out = _run(ib.execute_int57_tool("get_ai_news", {}))
     data = json.loads(out)

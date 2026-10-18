@@ -11,6 +11,7 @@ from ..core import counters
 from ..core import weather as weather_module
 from ..relay_client import wake_via_node
 from ..store import database
+from .routes_integrations import build_integrations_payload
 
 router = APIRouter()
 
@@ -54,6 +55,7 @@ def health(request: Request) -> dict:
         body["relay"] = relay.status()
     else:
         body["relay"] = {"configured": False, "connected": False, "relay": None}
+    body["integrations"] = build_integrations_payload(request)
     return body
 
 

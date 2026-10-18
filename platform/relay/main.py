@@ -34,6 +34,8 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = DATA_DIR / "relay.db"
 
 RELAY_TOKEN = os.getenv("JARVIS_RELAY_TOKEN", "").strip()
+if not RELAY_TOKEN:
+    raise RuntimeError("JARVIS_RELAY_TOKEN yapılandırılmadan relay başlatılamaz.")
 PRE_NOTIFY_MINUTES = 30          # hedefden 30 dk önce ön bildirim
 TICK_SECONDS = 10.0              # zamanlayıcı adımı
 REPEAT_MINUTES = 2               # ack edilmeyen alarm tekrar aralığı (5.5)
@@ -80,7 +82,7 @@ def init_db() -> None:
 
 def _require_token(authorization: Optional[str]) -> None:
     if not RELAY_TOKEN:
-        return  # token yapılandırılmamış → açık mod (yalnızca yerel test!)
+        raise HTTPException(status_code=503, detail="Relay secret yapılandırılmamış.")
     if authorization != f"Bearer {RELAY_TOKEN}":
         raise HTTPException(status_code=401, detail="Geçersiz token.")
 
@@ -312,9 +314,13 @@ async def scheduler_loop() -> None:
 app = FastAPI(title="JARVIS Relay", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[
+        origin.strip().rstrip("/")
+        for origin in os.getenv("JARVIS_RELAY_CORS_ORIGINS", "").split(",")
+        if origin.strip()
+    ],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
@@ -327,7 +333,7 @@ class ReminderCreate(BaseModel):
 async def _startup() -> None:
     init_db()
     asyncio.get_running_loop().create_task(scheduler_loop())
-    logger.info("JARVIS Relay hazır — token koruması: %s", "AÇIK" if RELAY_TOKEN else "KAPALI")
+    logger.info("JARVIS Relay hazır — token koruması: AÇIK")
 
 
 @app.get("/api/health")
@@ -380,7 +386,8 @@ async def api_ack(rid: str, authorization: Optional[str] = Header(default=None))
 async def agent_channel(ws: WebSocket) -> None:
     """Agent'ın outbound bağlantısı (router'da port açmaya gerek yok)."""
     if RELAY_TOKEN:
-        token = ws.query_params.get("token", "")
+        authorization = ws.headers.get("authorization", "")
+        token = authorization.removeprefix("Bearer ").strip()
         if token != RELAY_TOKEN:
             await ws.close(code=4401)
             return

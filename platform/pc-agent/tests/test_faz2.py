@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 import time
-import urllib.parse
 
 from fastapi.testclient import TestClient
 
@@ -31,11 +30,32 @@ def test_relay_status_relay_adi_cikarir():
     assert st["connected"] is False
 
 
-def test_relay_token_queryye_eklenir():
+def test_relay_token_url_queryye_sizmaz():
     rc = RelayClient("wss://r.example/ws", "tok1", lambda msg: {})
-    sep = "&" if "?" in "wss://r.example/ws" else "?"
-    target = f"wss://r.example/ws{sep}token={urllib.parse.quote('tok1')}"
-    assert "token=tok1" in target
+    assert "tok1" not in rc._url
+
+
+def test_relay_publish_websocket_send_api(monkeypatch):
+    import asyncio
+    from jarvis_agent import relay_client
+
+    class FakeSocket:
+        def __init__(self):
+            self.sent = []
+
+        async def send(self, payload):
+            self.sent.append(payload)
+
+    async def run():
+        rc = relay_client.RelayClient("wss://relay.example.com", "tok", lambda msg: {})
+        socket = FakeSocket()
+        rc._ws = socket
+        rc._connected.set()
+        rc.publish({"type": "ping"})
+        await asyncio.sleep(0)
+        return socket.sent
+
+    assert asyncio.run(run()) == ['{"type": "ping"}']
 
 
 # ── Komut yönlendirici ────────────────────────────────────────────────────────
@@ -99,6 +119,15 @@ def test_health_relay_bilgisi_tasiyor():
         body = c.get("/api/health").json()
     assert set(body["relay"]) == {"configured", "connected", "relay"}
     assert body["relay"]["configured"] is False
+
+
+def test_integrations_endpoint_anahtar_dondurmez():
+    c = _client()
+    with c:
+        body = c.get("/api/integrations").json()
+    assert "integrations" in body
+    assert "whatsapp" in body["integrations"]
+    assert "api_key" not in str(body).lower()
 
 
 def test_wol_status_ve_wake():

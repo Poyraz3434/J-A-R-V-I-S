@@ -85,9 +85,10 @@ F:\Software\JARVİS\.venv\Scripts\python main.py
 # → http://127.0.0.1:8000
 ```
 
-Yerel ağ erişimi: `.env`'de `JARVIS_BIND=0.0.0.0`. **Faz 1'de kimlik
-doğrulama yoktur** — yalnızca güvenli ağda kullanın (Faz 2'de QR
-eşleştirme + TLS gelir).
+Yerel ağ erişimi: `.env`'de `JARVIS_BIND=0.0.0.0`. Loopback dışı bind
+adreslerinde QR cihaz eşleştirmesi otomatik olarak zorunludur; telefon
+istekleri `X-Device-Token` göndermelidir. TLS için yerel ağda reverse proxy
+kullanın.
 
 ### 4) Testler
 
@@ -117,7 +118,8 @@ F:\Software\JARVİS\.venv\Scripts\python -m pytest tests -v
 - Kamera yalnız kullanıcı eylemiyle açılır; LIVE göstergesi; gerekirse
   `JARVIS_CAMERA_DISABLED=1` ile komple kapalı.
 - Audit log: her komut/olay SQLite'a yazılır.
-- Varsayılan `127.0.0.1`; dış erişim Faz 2'de TLS + cihaz anahtarıyla.
+- Varsayılan `127.0.0.1`; dış erişim loopback dışı bind'lerde cihaz anahtarıyla korunur.
+- Relay ve WoL node secret olmadan başlatılmaz; CORS origin'leri açıkça listelenmelidir.
 
 ## Varsayımlar
 
@@ -226,5 +228,4 @@ JARVIS_TARGET_MAC=AA-BB-CC-DD-EE-FF
 - Canlı duman testi: health, stats, pair start/QR/status, settings,
   reminder oluştur/liste/sil, files, voice status, chat (mock) ve
   `/sw.js` sunumu — tümü HTTP 200; relay bağlantısı `connected: true`.
-
 

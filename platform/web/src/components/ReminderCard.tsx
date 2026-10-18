@@ -18,7 +18,7 @@ function fmtDue(iso: string): string {
 const STATUS_STYLE: Record<Reminder["status"], string> = {
   firing: "text-rose-400",
   pending: "text-cyan-300",
-  acknowledged: "text-slate-500",
+  acked: "text-slate-500",
   expired: "text-slate-600",
 };
 

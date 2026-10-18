@@ -20,6 +20,8 @@ from pydantic import BaseModel
 
 SECRET = os.getenv("JARVIS_WOL_SECRET", "").strip()
 BIND_PORT = int(os.getenv("JARVIS_WOL_PORT", "8080"))
+if not SECRET:
+    raise RuntimeError("JARVIS_WOL_SECRET yapılandırılmadan WoL node başlatılamaz.")
 
 app = FastAPI(title="JARVIS WoL Node", version="1.0.0")
 
@@ -27,6 +29,8 @@ _MAC_RE = re.compile(r"^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$")
 
 
 def _require_secret(authorization: str | None) -> None:
+    if not SECRET:
+        raise HTTPException(status_code=503, detail="WoL secret yapılandırılmamış.")
     if SECRET and authorization != f"Bearer {SECRET}":
         raise HTTPException(status_code=401, detail="Geçersiz secret.")
 
@@ -40,6 +44,8 @@ def send_magic_packet(mac: str, port: int = 9, broadcast: str = "255.255.255.255
     """Verilen MAC'e magic packet yollar; gönderilen bayt sayısını döner."""
     if not _MAC_RE.match(mac):
         raise HTTPException(status_code=422, detail="Geçersiz MAC adresi.")
+    if port not in (7, 9):
+        raise HTTPException(status_code=422, detail="WoL portu yalnızca 7 veya 9 olabilir.")
     mac_clean = mac.replace(":", "").replace("-", "")
     packet = bytes.fromhex("FF" * 6 + mac_clean * 16)
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:

@@ -9,6 +9,8 @@ Gereksinim 5.4: Türkçe STT; internet yoksa çalışan yerel alternatif.
 from __future__ import annotations
 
 import io
+import gc
+import importlib.util
 import logging
 import wave
 from dataclasses import dataclass
@@ -28,7 +30,7 @@ _local_load_attempted = False
 
 
 def _get_local_model():
-    """faster-whisper 'tiny' modeli (uyandırma için) — tek seferlik yükler."""
+    """faster-whisper modelini yalnızca yerel STT gerçekten gerektiğinde yükler."""
     global _local_model, _local_load_attempted
     if _local_load_attempted:
         return _local_model
@@ -36,10 +38,9 @@ def _get_local_model():
     try:
         from faster_whisper import WhisperModel  # type: ignore
 
-        _local_model = WhisperModel(
-            "small", device="cpu", compute_type="int8",
-        )
-        logger.info("Yerel STT hazır (faster-whisper small, int8, CPU)")
+        model_name = config.env("JARVIS_LOCAL_STT_MODEL", "tiny")
+        _local_model = WhisperModel(model_name, device="cpu", compute_type="int8")
+        logger.info("Yerel STT hazır (faster-whisper %s, int8, CPU)", model_name)
     except ImportError:
         logger.warning(
             "faster-whisper kurulu değil — yerel uyandırma devre dışı. "
@@ -51,7 +52,19 @@ def _get_local_model():
 
 
 def local_stt_available() -> bool:
-    return _get_local_model() is not None
+    """Modeli yüklemeden faster-whisper kurulumu kontrol eder."""
+    return importlib.util.find_spec("faster_whisper") is not None
+
+
+def unload_local_model() -> None:
+    """Yerel STT modelini kapatır; bir sonraki kullanımda yeniden yüklenir."""
+    global _local_model, _local_load_attempted
+    model = _local_model
+    _local_model = None
+    _local_load_attempted = False
+    if model is not None:
+        del model
+        gc.collect()
 
 
 @dataclass

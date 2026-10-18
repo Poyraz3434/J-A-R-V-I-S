@@ -25,6 +25,7 @@ from .api import (
     routes_settings,
     routes_system,
     routes_voice,
+    routes_integrations,
 )
 from . import security
 from .api import routes_files
@@ -34,6 +35,7 @@ from .camera.service import CameraService
 from .core import counters
 from .core.stats import StatsMonitor
 from .llm import build_provider
+from .llm import int57_bridge
 from .reminders.service import SERVICE as REMINDER_SERVICE
 from .store import database
 from .voice.service import VoiceService
@@ -106,6 +108,9 @@ def create_app() -> FastAPI:
     )
 
     database.init_db()
+    int57_bridge.set_audit_callback(
+        lambda event, detail: database.audit(f"integration.{event}", detail=detail)
+    )
 
     app = FastAPI(
         title="JARVIS PC Agent",
@@ -114,12 +119,20 @@ def create_app() -> FastAPI:
         openapi_url="/api/openapi.json",
     )
 
-    # Dev modunda Vite (5173) bu CORS'a ihtiyaç duyar; üretimde aynı origin.
+    configured_origins = [
+        origin.strip().rstrip("/")
+        for origin in config.env("JARVIS_CORS_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
+    allowed_origins = configured_origins or [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_origins=allowed_origins,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "X-Device-Token"],
         allow_credentials=False,
     )
 
@@ -177,6 +190,7 @@ def create_app() -> FastAPI:
     app.include_router(routes_reminders.router)
     app.include_router(routes_files.router)
     app.include_router(routes_pair.router)
+    app.include_router(routes_integrations.router)
     app.include_router(ws_module.router)
 
     @app.on_event("startup")
