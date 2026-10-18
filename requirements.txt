@@ -4,6 +4,12 @@ requests>=2.32,<3
 psutil>=6,<7
 pyperclip>=1.9,<2
 
+# FastAPI platform services
+# Keep these versions aligned with platform/*/requirements.txt.
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
 # AI and voice
 Groq>=0.11,<1
 openai>=1.52,<3
