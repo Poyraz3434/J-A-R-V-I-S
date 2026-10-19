@@ -22,6 +22,7 @@ for var in (
     "JARVIS_ANTHROPIC_API_KEY",
     "JARVIS_OLLAMA_URL",
     "JARVIS_OWM_API_KEY",
+    "OWM_API_KEY",  # config yedek değişkeni — kök .env'den testlere sızmaz
     "JARVIS_LLM_MODEL",
 ):
     os.environ.pop(var, None)
@@ -35,6 +36,10 @@ from jarvis_agent import config  # noqa: E402
 from jarvis_agent.app import create_app  # noqa: E402
 from jarvis_agent.core.stats import compute_load_level  # noqa: E402
 from jarvis_agent.store import database  # noqa: E402
+
+# Gerçek .env'den sızabilecek hava durumu anahtarını test sürecinde kapat
+# (config, import sırasında OWM_API_KEY'i os.environ'a geri yükleyebiliyor).
+config.OWM_API_KEY = ""
 
 
 def _connect_to(path):
