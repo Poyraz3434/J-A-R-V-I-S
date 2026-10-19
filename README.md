@@ -54,6 +54,38 @@ The same configuration is available in `render.yaml`. The health check is
 Render must keep `JARVIS_BIND=0.0.0.0` and `JARVIS_PAIRING_REQUIRED=1` so
 paired device tokens create isolated conversation partitions.
 
+### Google Home bağlantısı
+
+Web panelindeki **Google Home** kartı, Google Home Device Access (SDM)
+API'sini JARVIS'in merkezi backend'i üzerinden kullanır. Google Cloud
+Developer Console'da bir proje oluşturup Device Access kaydı, SDM API ve
+OAuth istemci kimlik bilgilerini etkinleştirin. Device Access kaydı için
+Google'ın güncel tek seferlik kayıt ücretini ve uygunluk şartlarını Developer
+Console'da kontrol edin; ücret ve şartlar bölgeye/hesap türüne göre
+değişebilir. Kamera canlı akışı gibi bazı trait'ler ayrıca Google Home
+Developer Console onayı gerektirebilir.
+
+Backend `.env` değerleri:
+
+```text
+GOOGLE_HOME_CLIENT_ID=...
+GOOGLE_HOME_CLIENT_SECRET=...
+GOOGLE_HOME_PROJECT_ID=...
+GOOGLE_HOME_REDIRECT_URI=https://your-host.example/api/smart-home/oauth/callback
+# Fernet anahtarı veya parola; üretimde gizli yönetim sistemi kullanın.
+GOOGLE_HOME_TOKEN_KEY=...
+```
+
+OAuth redirect URI'si Google Cloud Console'da birebir tanımlanmalıdır.
+Refresh token'ları kullanıcı/cihaz sahibi bazında Fernet ile şifrelenerek
+SQLite'a yazılır ve access token süresi dolmadan otomatik yenilenir.
+Komutlar backend'de sınırlı bir kuyruğa alınır, zaman aşımında hata olarak
+döner ve cihaz kimliği önce kullanıcının listelenen cihazlarıyla doğrulanır.
+
+Pub/Sub ile olay akışı kurmak mümkün olsa da bu sürümde güvenli varsayılan
+olarak 10 saniyelik polling kullanılır; web paneli ve uygulama içi kart aynı
+`/api/smart-home/devices` ve `/api/smart-home/command` uçlarını kullanır.
+
 b) Configuration (.env)
 Create a .env file in the project root directory (or next to the compiled executable) to securely configure your API keys:
 JARVIS_GROQ_API_KEY=your_groq_api_key_here

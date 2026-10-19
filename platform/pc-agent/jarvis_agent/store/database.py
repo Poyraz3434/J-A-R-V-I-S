@@ -36,6 +36,12 @@ CREATE TABLE IF NOT EXISTS audit_log (
     event TEXT NOT NULL,
     detail TEXT NOT NULL DEFAULT ''
 );
+
+CREATE TABLE IF NOT EXISTS google_home_tokens (
+    owner_id TEXT PRIMARY KEY,
+    encrypted_token TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 """
 
 
@@ -164,3 +170,27 @@ def get_audit(limit: int = 100) -> list[dict[str, Any]]:
             (limit,),
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def save_google_home_token(owner_id: str, encrypted_token: str) -> None:
+    with _write_lock, closing(connect()) as conn, conn:
+        conn.execute(
+            "INSERT INTO google_home_tokens (owner_id, encrypted_token, updated_at) "
+            "VALUES (?, ?, ?) ON CONFLICT(owner_id) DO UPDATE SET "
+            "encrypted_token=excluded.encrypted_token, updated_at=excluded.updated_at",
+            (owner_id, encrypted_token, _now()),
+        )
+
+
+def get_google_home_token(owner_id: str) -> Optional[str]:
+    with closing(connect()) as conn:
+        row = conn.execute(
+            "SELECT encrypted_token FROM google_home_tokens WHERE owner_id = ?",
+            (owner_id,),
+        ).fetchone()
+    return str(row["encrypted_token"]) if row else None
+
+
+def delete_google_home_token(owner_id: str) -> None:
+    with _write_lock, closing(connect()) as conn, conn:
+        conn.execute("DELETE FROM google_home_tokens WHERE owner_id = ?", (owner_id,))

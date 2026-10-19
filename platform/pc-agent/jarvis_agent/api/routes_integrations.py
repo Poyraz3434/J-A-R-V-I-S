@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Request
 
 from .. import config
-from ..integrations import home, mail, whatsapp
+from ..integrations import google_home, home, mail, whatsapp
 
 router = APIRouter()
 
@@ -39,6 +39,7 @@ def build_integrations_payload(request: Request) -> dict:
         ),
         "imap": _status(mail.available()),
         "home_assistant": _status(home.available()),
+        "google_home": _status(google_home.configured()),
         "relay": relay.status() if relay is not None else _status(False, reachable=False),
         "wol": _status(bool(wol.get("url") and wol.get("mac"))),
     }
@@ -66,6 +67,11 @@ def email_status() -> dict:
 @router.get("/api/integrations/home-assistant")
 def home_assistant_status() -> dict:
     return _status(home.available())
+
+
+@router.get("/api/integrations/google-home")
+def google_home_status(request: Request) -> dict:
+    return google_home.status(str(request.headers.get("x-client-id") or "local"))
 
 
 @router.get("/api/integrations/relay")

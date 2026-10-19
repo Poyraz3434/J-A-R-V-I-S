@@ -26,6 +26,7 @@ from .api import (
     routes_system,
     routes_voice,
     routes_integrations,
+    routes_smart_home,
 )
 from . import security
 from .api import routes_files
@@ -180,6 +181,7 @@ def create_app() -> FastAPI:
     # Hatırlatıcı olayları → TTS + WS + relay (announcer bağlantısı).
     REMINDER_SERVICE.announcer = _make_announcer(app.state.voice, relay_client)
     app.state.reminders = REMINDER_SERVICE
+    app.state.google_home_oauth_states = {}
 
     app.include_router(routes_system.router)
     app.include_router(routes_chat.router)
@@ -191,6 +193,7 @@ def create_app() -> FastAPI:
     app.include_router(routes_files.router)
     app.include_router(routes_pair.router)
     app.include_router(routes_integrations.router)
+    app.include_router(routes_smart_home.router)
     app.include_router(ws_module.router)
 
     @app.on_event("startup")

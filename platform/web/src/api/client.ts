@@ -192,4 +192,19 @@ export const api = {
   wolStatus: () => request<Record<string, unknown>>("/api/system/wol"),
   wolTest: () =>
     request<Record<string, unknown>>("/api/system/wol/wake", { method: "POST" }),
+
+  smartHomeStatus: () => request<import("../types").SmartHomeStatus>("/api/smart-home/status"),
+  smartHomeDevices: () =>
+    request<{ devices: Record<string, import("../types").SmartHomeDevice[]>; total: number }>(
+      "/api/smart-home/devices"
+    ),
+  smartHomeCommand: (device_id: string, action: "on" | "off" | "brightness" | "temperature", value?: number) =>
+    request<{ ok: boolean; device_id: string; action: string }>("/api/smart-home/command", {
+      method: "POST",
+      body: JSON.stringify({ device_id, action, value }),
+    }),
+  smartHomeOAuthStart: () =>
+    request<{ authorization_url: string }>("/api/smart-home/oauth/start"),
+  smartHomeDisconnect: () =>
+    request<{ disconnected: boolean }>("/api/smart-home/disconnect", { method: "POST" }),
 };

@@ -111,3 +111,19 @@ export interface DeviceSummary {
   created_at?: string;
   last_seen_at?: string | null;
 }
+
+export interface SmartHomeDevice {
+  id: string;
+  name: string;
+  room: string;
+  type: string;
+  traits: string[];
+  state: Record<string, unknown>;
+  online: boolean;
+}
+
+export interface SmartHomeStatus {
+  configured: boolean;
+  connected: boolean;
+  reason?: string;
+}

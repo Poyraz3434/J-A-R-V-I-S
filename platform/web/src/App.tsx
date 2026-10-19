@@ -17,6 +17,7 @@ import FileTransferCard from "./components/FileTransferCard";
 import CenterStage from "./components/CenterStage";
 import ConversationPanel from "./components/ConversationPanel";
 import SettingsModal from "./components/SettingsModal";
+import SmartHomeCard from "./components/SmartHomeCard";
 import type { LogoState } from "./types";
 
 export default function App() {
@@ -101,6 +102,7 @@ export default function App() {
       />
       <FileTransferCard />
       <PairCard online={jarvis.online} />
+      <SmartHomeCard />
       <UptimeCard stats={jarvis.stats} online={jarvis.online} />
     </>
   );

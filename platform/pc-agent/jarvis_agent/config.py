@@ -131,6 +131,18 @@ OWM_API_KEY = env("JARVIS_OWM_API_KEY") or env("OWM_API_KEY")
 # Kişisel konum kodda gömülü DEĞİLDİR — .env'den okunur; boşsa 'no_city' döner.
 DEFAULT_CITY = env("JARVIS_CITY")
 
+# Google Home Device Access (SDM) OAuth configuration. These values are
+# intentionally absent by default; the integration stays disabled until all
+# required credentials are configured.
+GOOGLE_HOME_CLIENT_ID = env("GOOGLE_HOME_CLIENT_ID")
+GOOGLE_HOME_CLIENT_SECRET = env("GOOGLE_HOME_CLIENT_SECRET")
+GOOGLE_HOME_PROJECT_ID = env("GOOGLE_HOME_PROJECT_ID")
+GOOGLE_HOME_REDIRECT_URI = env(
+    "GOOGLE_HOME_REDIRECT_URI",
+    "http://127.0.0.1:8000/api/smart-home/oauth/callback",
+)
+GOOGLE_HOME_TOKEN_KEY = env("GOOGLE_HOME_TOKEN_KEY")
+
 # ── Relay (Faz 4: hatırlatıcılar relay'de yaşar) ─────────────────────────────
 # Boş bırakılırsa hatırlatıcı modülü devre dışı kalır (yerel test kolaylığı).
 RELAY_URL = env("JARVIS_RELAY_URL")                     # ör. ws://192.168.1.10:8100
