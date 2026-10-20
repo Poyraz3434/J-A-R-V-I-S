@@ -31,6 +31,14 @@
   --bg-glow-1: rgb(20 83 45 / 0.30);
   --bg-glow-2: rgb(34 197 94 / 0.15);
 }
+/* Bordo (varsayılan) — Prompt 5.1 */
+:root[data-bg="maroon"] {
+  --accent-rgb: 185 28 28;           /* maroon-700 */
+  --accent-soft-rgb: 253 164 175;   /* rose-300 */
+  --bg-page: #0d0308;
+  --bg-glow-1: rgb(139 0 0 / 0.34);
+  --bg-glow-2: rgb(196 30 58 / 0.16);
+}
 
 :root {
   --panel: rgb(255 255 255 / 0.035);
@@ -230,4 +238,54 @@ select {
 @keyframes typing-bounce {
   0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
   30%           { transform: translateY(-4px); opacity: 1; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   BÖLÜM A — Bordo tema (madde 4, VARSAYILAN), scroll performansı
+   (madde 8) ve sohbet paneli konumu (madde 32)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Bordo tema: koyu bordo birincil renk, açık bej zemin ── */
+html[data-bg="maroon"] {
+  --accent-rgb: 128 0 0;        /* #800000 bordo */
+  --accent-soft-rgb: 224 167 152;
+  --bg-glow-1: rgb(128 0 0 / 0.16);
+  --bg-glow-2: rgb(139 115 85 / 0.14);
+  --panel: rgb(28 16 14 / 0.78);
+  --panel-strong: rgb(46 24 20 / 0.88);
+  --border: rgb(128 0 0 / 0.32);
+  --border-strong: rgb(176 48 48 / 0.6);
+  color-scheme: dark;
+}
+
+/* ── Scroll performansı: sadece compositable özellikler, GPU katmanı ── */
+.chat-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
+  transform: translateZ(0);          /* kendi kompozit katmanı → ana akışı kilitlemez */
+  backface-visibility: hidden;
+}
+.chat-scroll::-webkit-scrollbar { width: 6px; }
+.chat-scroll::-webkit-scrollbar-thumb { background: rgb(var(--accent-rgb) / 0.4); border-radius: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .chat-scroll { scroll-behavior: auto; }
+}
+
+/* ── Sohbet paneli konumu (madde 32) ── */
+html[data-chat-position="center"] .chat-panel-aside {
+  position: relative;
+  z-index: 5;
+  max-width: 46rem;
+  width: 100%;
+  margin-inline: auto;
+}
+/* Orta konumda masaüstünde 3. kolon yerine akış içinde tam yükseklik */
+@media (min-width: 1024px) {
+  html[data-chat-position="center"] .chat-panel-aside {
+    min-height: 60vh;
+  }
 }

@@ -18,7 +18,7 @@ logger = logging.getLogger("jarvis.chat")
 
 MAX_TOOL_HOPS = 3
 
-SYSTEM_PROMPT = (
+SYSTEM_PROMPT_TR = (
     "Sen J.A.R.V.I.S adını taşıyan kişisel bir asistansın. "
     "Kullanıcınla doğal, saygılı ve akıcı Türkçe konuş; gerektiğinde "
     "'efendim' gibi kibar bir üslup kullanabilirsin. Yanıtlarını kısa ve öz tut. "
@@ -30,6 +30,25 @@ SYSTEM_PROMPT = (
     "yetkin yoktur."
 )
 
+SYSTEM_PROMPT_EN = (
+    "You are a personal assistant named J.A.R.V.I.S. "
+    "Speak naturally, respectfully and fluently in English. Keep answers short "
+    "and to the point. You can only access system clock, weather and computer "
+    "status through the given tools (get_system_stats, get_current_time, "
+    "get_weather) — never guess such facts. If the user asks for a destructive "
+    "action (deleting files, shutting down the computer), clearly state that "
+    "you cannot do it without confirmation; you have no shell access."
+)
+
+
+def build_system_prompt(language: str = "tr") -> str:
+    """Madde 3: yanıt dili, sahibinin user_settings diline göre seçilir."""
+    return SYSTEM_PROMPT_EN if language == "en" else SYSTEM_PROMPT_TR
+
+
+# Geriye dönük takma ad: testler ve diğer modüller TR promptu tek isimden okur.
+SYSTEM_PROMPT = SYSTEM_PROMPT_TR
+
 
 async def run_chat(
     message: str,
@@ -39,11 +58,13 @@ async def run_chat(
     persist: bool = True,
     source: str = "text",
     owner_id: str = "local",
+    language: str = "tr",
 ) -> dict[str, Any]:
     """Bir kullanıcı iletisini uçtan uca işler.
 
     persist=False yalnızca içsel denemeler içindir; üretimde her mesaj
     geçmişe yazılır (gereksinim 5.3: konuşma geçmişi yerelde saklanır).
+    ``language`` sistem promptunu seçer (madde 3: tr/en).
     """
     message = (message or "").strip()
 
@@ -51,7 +72,9 @@ async def run_chat(
         database.add_message("user", message, owner_id=owner_id)
         database.audit("chat.message", detail=f"[{source}] {message[:200]}")
 
-    llm_messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
+    llm_messages: list[dict] = [
+        {"role": "system", "content": build_system_prompt(language)}
+    ]
     if persist:
         for row in database.get_messages(limit=24, owner_id=owner_id):
             llm_messages.append({"role": row["role"], "content": row["content"]})

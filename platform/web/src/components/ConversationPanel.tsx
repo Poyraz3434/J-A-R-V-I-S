@@ -1,6 +1,8 @@
-/** Sağ panel "Conversation": Clear, Extract (txt/md), balonlar, yazı alanı. */
+/** Sağ panel "Conversation": Clear, Extract (txt/md), balonlar, yazı alanı.
+    Madde 8: scroll performansı — rAF ile tek autoscroll, passive listener. */
 import { forwardRef, useEffect, useRef, useState } from "react";
 import type { ChatMessage } from "../types";
+import { t } from "../i18n";
 
 interface Props {
   messages: ChatMessage[];
@@ -63,10 +65,25 @@ const ConversationPanel = forwardRef<HTMLInputElement, Props>(
     const [draft, setDraft] = useState("");
     const [confirmingClear, setConfirmingClear] = useState(false);
     const [exportOpen, setExportOpen] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
+    const rafRef = useRef<number | null>(null);
 
+    // Madde 8: her mesaj değişiminde en fazla bir requestAnimationFrame —
+    // hızlı ardışık mesajlarda scroll storm olmaz; smooth yerine "auto" ile
+    // ana thread kilidi engellenir (uzun sohbetlerde takılma kaynağıydı).
     useEffect(() => {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+        rafRef.current = requestAnimationFrame(() => {
+            rafRef.current = null;
+            bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+        });
+        return () => {
+            if (rafRef.current !== null) {
+                cancelAnimationFrame(rafRef.current);
+                rafRef.current = null;
+            }
+        };
     }, [messages.length, sending]);
 
     const submit = () => {
@@ -92,7 +109,7 @@ const ConversationPanel = forwardRef<HTMLInputElement, Props>(
           style={{ borderColor: "var(--border)" }}
         >
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">
-            Conversation
+            {t("chat.title")}
           </h2>
           <div className="flex items-center gap-1.5">
             <button
@@ -101,7 +118,7 @@ const ConversationPanel = forwardRef<HTMLInputElement, Props>(
               disabled={!online || messages.length === 0}
               className="btn-accent rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wider"
             >
-              {confirmingClear ? "Onayla" : "Clear"}
+              {confirmingClear ? t("chat.confirm_clear") : t("chat.clear")}
             </button>
             <div className="relative">
               <button
@@ -109,7 +126,7 @@ const ConversationPanel = forwardRef<HTMLInputElement, Props>(
                 onClick={() => setExportOpen((o) => !o)}
                 disabled={messages.length === 0}
                 className="btn-accent rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wider"
-                title="Konuşmayı dışa aktar"
+                title={t("chat.export")}
               >
                 Extract ▾
               </button>
@@ -140,10 +157,10 @@ const ConversationPanel = forwardRef<HTMLInputElement, Props>(
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-3 py-3">
+        <div ref={scrollRef} className="chat-scroll min-h-0 flex-1 space-y-2.5 px-3 py-3">
           {messages.length === 0 && (
             <p className="mt-6 text-center text-xs text-slate-500">
-              Konuşma boş. Bir şeyler yazın...
+              {t("chat.empty")}
             </p>
           )}
           {messages.map((m) => (
@@ -177,7 +194,7 @@ const ConversationPanel = forwardRef<HTMLInputElement, Props>(
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submit()}
               disabled={!online}
-              placeholder={online ? "Jarvis'e yazın..." : "Çevrimdışı — bağlantı bekleniyor"}
+              placeholder={online ? t("chat.placeholder") : t("chat.placeholder_offline")}
               className="min-w-0 flex-1 rounded-lg border bg-black/30 px-3 py-2 text-[13px] outline-none placeholder:text-slate-500 disabled:opacity-50"
               style={{ borderColor: "var(--border)" }}
             />
@@ -186,7 +203,7 @@ const ConversationPanel = forwardRef<HTMLInputElement, Props>(
               onClick={submit}
               disabled={!online || !draft.trim() || sending}
               className="btn-accent grid h-9 w-9 shrink-0 place-items-center rounded-lg"
-              title="Gönder"
+              title={t("chat.send")}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                 <path d="M22 2L11 13 M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

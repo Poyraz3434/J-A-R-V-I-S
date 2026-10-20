@@ -129,8 +129,12 @@ def system_stats(request: Request) -> dict:
 
 @router.get("/api/weather")
 def get_weather(request: Request, refresh: bool = False) -> dict:
-    city = database.get_setting("city", config.DEFAULT_CITY) or config.DEFAULT_CITY
-    return weather_module.get(city, force=refresh)
+    # Bölüm A: şehir ve dil sahibine özel user_settings'ten okunur.
+    owner = getattr(request.state, "owner", "local")
+    row = database.get_user_settings(owner)
+    city = (str(row.get("city") or "") or config.DEFAULT_CITY or "").strip()
+    lang = str(row.get("language") or "") or config.DEFAULT_LANGUAGE
+    return weather_module.get(city, force=refresh, lang=lang)
 
 
 @router.get("/api/audit")

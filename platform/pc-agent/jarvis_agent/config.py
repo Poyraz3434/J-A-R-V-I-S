@@ -31,7 +31,11 @@ LOG_DIR = APP_DATA_DIR / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE = LOG_DIR / "agent.log"
 
-ALLOWED_BG_COLORS = ("red", "green", "blue")
+ALLOWED_BG_COLORS = ("red", "green", "blue", "maroon")
+
+# Kullanıcı ayarları için izinli değerler (kullanıcıya özel ayarlar DB'de tutulur).
+ALLOWED_LANGUAGES = ("tr", "en")
+ALLOWED_CHAT_POSITIONS = ("right", "center")
 
 # Şablon dosyalarındaki sahte anahtar değerleri geçersiz sayılır.
 _PLACEHOLDER_PREFIXES = ("your_", "xxx", "changeme")
@@ -152,6 +156,14 @@ RELAY_HTTP_URL = env("JARVIS_RELAY_HTTP_URL")           # ör. http://192.168.1.
 ALARM_IDLE_ACK_SECONDS = float(env("JARVIS_ALARM_IDLE_ACK_SECONDS", "5"))
 
 # ── Arayüz varsayılanları ────────────────────────────────────────────────────
-DEFAULT_BG_COLOR = env("JARVIS_DEFAULT_BG_COLOR", "blue")
+# Madde 4: bordo tema varsayılandır (kullanıcı daha önce farklı seçmediyse).
+DEFAULT_BG_COLOR = env("JARVIS_DEFAULT_BG_COLOR", "maroon")
 if DEFAULT_BG_COLOR not in ALLOWED_BG_COLORS:
-    DEFAULT_BG_COLOR = "blue"
+    DEFAULT_BG_COLOR = "maroon"  # madde 4: bordo varsayılan tema
+# Varsayılan tercihler (madde 3, 32): dil TR, sohbet paneli sağda.
+DEFAULT_LANGUAGE = env("JARVIS_DEFAULT_LANGUAGE", "tr")
+if DEFAULT_LANGUAGE not in ALLOWED_LANGUAGES:
+    DEFAULT_LANGUAGE = "tr"
+DEFAULT_CHAT_POSITION = env("JARVIS_DEFAULT_CHAT_POSITION", "right")
+if DEFAULT_CHAT_POSITION not in ALLOWED_CHAT_POSITIONS:
+    DEFAULT_CHAT_POSITION = "right"

@@ -186,6 +186,8 @@ def request_owner(request: Any) -> str:
 
     Paired devices are isolated by device id. Local desktop traffic uses one
     explicit local partition because it has no remote device identity.
+    Unauthenticated remote requests are guests ("guest:*", madde 6): their
+    settings and chat are never persisted.
     """
     device = getattr(getattr(request, "state", None), "device", None)
     device_id = str((device or {}).get("device_id") or "").strip()
@@ -196,7 +198,32 @@ def request_owner(request: Any) -> str:
     if client_owner:
         return client_owner
     query_params = getattr(request, "query_params", {})
-    return _client_owner(query_params.get("client_id")) or "local"
+    qp_owner = _client_owner(query_params.get("client_id"))
+    if qp_owner:
+        return qp_owner
+    # Kimliksiz uzak istek = misafir; 'local' partisyonuna ASLA yazmamalı.
+    if not is_loopback(_client_host(request)):
+        return "guest:anon"
+    return "local"
+
+
+def _client_host(request: Any) -> str:
+    client = getattr(request, "client", None)
+    return str(getattr(client, "host", "") or "") if client else ""
+
+
+def is_guest(request: Any) -> bool:
+    """Kimliği doğrulanamayan uzak istek = misafir (Bölüm A/B kuralı).
+
+    Misafir: loopback dışından gelir, eşleşmiş cihazı ve geçerli bir
+    client_id'si yoktur. Sohbeti ve ayarları kalıcı olarak KAYIT EDİLMEZ.
+    """
+    if is_loopback(_client_host(request)):
+        return False
+    if getattr(getattr(request, "state", None), "device", None):
+        return False
+    headers = getattr(request, "headers", {})
+    return _client_owner(headers.get("x-client-id")) is None
 
 
 def websocket_owner(websocket: Any) -> tuple[str, str]:

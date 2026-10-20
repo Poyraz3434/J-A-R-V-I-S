@@ -16,6 +16,9 @@ ROLE_LABELS = {"user": "Kullanıcı", "assistant": "JARVIS", "system": "Sistem"}
 
 @router.get("/api/conversation")
 def get_conversation(request: Request, limit: int = Query(default=200, ge=1, le=1000)) -> dict:
+    # Misafir: sohbet kaydı tutulmaz (Madde 6); boş geçmiş döner.
+    if security.is_guest(request):
+        return {"messages": [], "count": 0, "guest": True}
     messages = database.get_messages(
         limit=limit, owner_id=security.request_owner(request)
     )
@@ -24,6 +27,8 @@ def get_conversation(request: Request, limit: int = Query(default=200, ge=1, le=
 
 @router.delete("/api/conversation")
 def clear_conversation(request: Request) -> dict:
+    if security.is_guest(request):
+        return {"cleared": 0, "guest": True}
     owner_id = security.request_owner(request)
     cleared = database.clear_messages(owner_id=owner_id)
     database.audit("conversation.clear", detail=f"{cleared} mesaj silindi")
@@ -61,7 +66,8 @@ def export_conversation(
     request: Request,
     format: str = Query(default="txt", pattern="^(txt|md)$"),
 ) -> Response:
-    messages = database.get_messages(
+    # Misafirin kaydı olmadığı için döküm de boştur.
+    messages = [] if security.is_guest(request) else database.get_messages(
         limit=1000, owner_id=security.request_owner(request)
     )
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")

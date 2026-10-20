@@ -1,5 +1,6 @@
 /** Üst bar: logo + bağlantı rozeti | canlı saat/tarih | hava + ayarlar + (mobil) kartlar. */
 import { useEffect, useState } from "react";
+import { getLang, t } from "../i18n";
 
 interface TopBarProps {
   online: boolean;
@@ -8,11 +9,20 @@ interface TopBarProps {
   onOpenDrawer: () => void;
 }
 
-const TR_DAYS = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
-const TR_MONTHS = [
-  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
-  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
-];
+const DAY_NAMES: Record<string, string[]> = {
+  tr: ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"],
+  en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+};
+const MONTH_NAMES: Record<string, string[]> = {
+  tr: [
+    "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+    "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+  ],
+  en: [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ],
+};
 
 export default function TopBar({ online, weather, onOpenSettings, onOpenDrawer }: TopBarProps) {
   const [now, setNow] = useState(new Date());
@@ -22,8 +32,9 @@ export default function TopBar({ online, weather, onOpenSettings, onOpenDrawer }
     return () => clearInterval(id);
   }, []);
 
-  const time = now.toLocaleTimeString("tr-TR", { hour12: false });
-  const date = `${TR_DAYS[now.getDay()]} ${now.getDate()} ${TR_MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+  const lang = getLang();
+  const time = now.toLocaleTimeString(lang === "en" ? "en-GB" : "tr-TR", { hour12: false });
+  const date = `${DAY_NAMES[lang][now.getDay()]} ${now.getDate()} ${MONTH_NAMES[lang][now.getMonth()]} ${now.getFullYear()}`;
 
   const tempText = weather?.available && weather.temperature !== undefined
     ? `${Math.round(weather.temperature)}°`
@@ -39,7 +50,7 @@ export default function TopBar({ online, weather, onOpenSettings, onOpenDrawer }
           type="button"
           className="btn-accent rounded-lg px-2 py-1.5 lg:hidden"
           onClick={onOpenDrawer}
-          title="Sistem kartları"
+          title={t("topbar.system_cards")}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
@@ -63,7 +74,7 @@ export default function TopBar({ online, weather, onOpenSettings, onOpenDrawer }
             className="inline-block h-1.5 w-1.5 rounded-full"
             style={{ background: online ? "rgb(74 222 128)" : "rgb(248 113 113)" }}
           />
-          {online ? "ONLINE" : "OFFLINE"}
+          {online ? t("topbar.online") : t("topbar.offline")}
         </span>
       </div>
 
@@ -84,7 +95,7 @@ export default function TopBar({ online, weather, onOpenSettings, onOpenDrawer }
         <button
           type="button"
           onClick={onOpenSettings}
-          title="Ayarlar"
+          title={t("topbar.settings")}
           className="btn-accent rounded-lg p-2"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

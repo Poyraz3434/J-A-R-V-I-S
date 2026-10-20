@@ -56,6 +56,8 @@ export default function App() {
 
   // Sesli oturum aktifken masaüstünde yalnızca orta alan görünür (gereklim 4).
   const voiceSessionActive = !!jarvis.voice?.session;
+  // Madde 32: sohbet paneli konumu (DB'de kullanıcıya özel saklanır).
+  const chatPosition = jarvis.settings?.chat_panel_position ?? "right";
 
   const handleExport = async (format: "txt" | "md") => {
     const blob = await api.exportConversation(format);
@@ -149,12 +151,15 @@ export default function App() {
         </div>
       )}
 
-      {/* Ana ızgara — sesli oturumda masaüstünde yalnızca orta alan */}
+      {/* Ana ızgara — sesli oturumda masaüstünde yalnızca orta alan.
+          Madde 32: center konumunda sohbet paneli orta kolona taşınır. */}
       <main
         className={
           voiceSessionActive
             ? "relative z-10 grid min-h-0 flex-1 place-items-center p-3"
-            : "relative z-10 grid flex-1 items-start gap-3 p-3 lg:grid-cols-[280px_minmax(0,1fr)_340px]"
+            : chatPosition === "center"
+              ? "relative z-10 grid flex-1 items-start gap-3 p-3 lg:grid-cols-[280px_minmax(0,1fr)]"
+              : "relative z-10 grid flex-1 items-start gap-3 p-3 lg:grid-cols-[280px_minmax(0,1fr)_340px]"
         }
       >
         {/* Sol kolon — masaüstü, sesli oturumda gizli */}
@@ -163,22 +168,44 @@ export default function App() {
         )}
 
         {/* Orta alan */}
-        <CenterStage
-          phase={phase}
-          cameraLive={jarvis.camera.status === "live"}
-          voice={jarvis.voice}
-          voiceError={jarvis.voiceError}
-          onCamera={() => {
-            if (window.innerWidth < 1024) setDrawerOpen(true);
-            else jarvis.toggleCamera();
-          }}
-          onMic={jarvis.toggleMic}
-          onKeyboard={() => chatInputRef.current?.focus()}
-          onExitVoiceMode={jarvis.exitVoiceMode}
-        />
+        <div
+          className={
+            chatPosition === "center" && !voiceSessionActive
+              ? "flex min-w-0 flex-col items-center gap-3"
+              : ""
+          }
+        >
+          <CenterStage
+            phase={phase}
+            cameraLive={jarvis.camera.status === "live"}
+            voice={jarvis.voice}
+            voiceError={jarvis.voiceError}
+            onCamera={() => {
+              if (window.innerWidth < 1024) setDrawerOpen(true);
+              else jarvis.toggleCamera();
+            }}
+            onMic={jarvis.toggleMic}
+            onKeyboard={() => chatInputRef.current?.focus()}
+            onExitVoiceMode={jarvis.exitVoiceMode}
+          />
+          {chatPosition === "center" && !voiceSessionActive && (
+            <div className="w-full max-w-2xl">
+              <ConversationPanel
+                ref={chatInputRef}
+                messages={jarvis.messages}
+                sending={jarvis.sending}
+                online={jarvis.online}
+                lastError={jarvis.lastError}
+                onSend={jarvis.sendMessage}
+                onClear={jarvis.clearConversation}
+                onExport={handleExport}
+              />
+            </div>
+          )}
+        </div>
 
-        {/* Sağ panel — sohbet, sesli oturumda gizli */}
-        {!voiceSessionActive && (
+        {/* Sağ panel — sohbet (right konumu), sesli oturumda gizli */}
+        {!voiceSessionActive && chatPosition !== "center" && (
           <div className="min-w-0 lg:block">
             <ConversationPanel
               ref={chatInputRef}
@@ -204,6 +231,7 @@ export default function App() {
         onClose={() => setSettingsOpen(false)}
         onSave={jarvis.saveSettings}
         onSaveVoice={jarvis.updateVoiceSettings}
+        onChangeLanguage={jarvis.changeLanguage}
       />
     </div>
   );

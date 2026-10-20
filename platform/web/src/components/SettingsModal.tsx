@@ -1,6 +1,13 @@
-/** Ayarlar modalı: arka plan rengi, şehir ve ses ayarları (Faz 3). */
+/** Ayarlar modalı: tema (madde 4), dil (madde 3), panel konumu (madde 32),
+ * şehir ve ses ayarları (Faz 3). Tüm metinler i18n'den gelir. */
 import { useEffect, useState } from "react";
-import type { AppSettings, VoiceStatus } from "../types";
+import { t, getLang } from "../i18n";
+import type {
+  AppSettings,
+  ChatPanelPosition,
+  Language,
+  VoiceStatus,
+} from "../types";
 
 interface Props {
   open: boolean;
@@ -10,29 +17,44 @@ interface Props {
   integrations: Record<string, { configured: boolean; connected?: boolean; reachable?: boolean; detail?: string }> | null;
   voice: VoiceStatus | null;
   onClose: () => void;
-  onSave: (patch: { background_color?: string; city?: string }) => Promise<unknown>;
+  onSave: (patch: {
+    background_color?: AppSettings["background_color"];
+    city?: string;
+    language?: Language;
+    chat_panel_position?: ChatPanelPosition;
+  }) => Promise<unknown>;
   onSaveVoice: (patch: {
     wake_phrases?: string[];
     exit_phrases?: string[];
     clap_enabled?: boolean;
     clap_sensitivity?: number;
   }) => Promise<unknown>;
+  /** Madde 3: dil değişimi (anında uygulanır, DB'ye yazılır). */
+  onChangeLanguage: (lang: Language) => Promise<unknown> | void;
 }
 
-const COLORS: { value: AppSettings["background_color"]; label: string; css: string }[] = [
-  { value: "red", label: "Kırmızı", css: "rgb(239 68 68)" },
-  { value: "green", label: "Yeşil", css: "rgb(34 197 94)" },
-  { value: "blue", label: "Mavi", css: "rgb(59 130 246)" },
+/** Madde 4: bordo VARSAYILAN tema; etiketler i18n'den gelir. */
+const COLORS: { value: AppSettings["background_color"]; css: string; labelKey: string }[] = [
+  { value: "maroon", css: "#800000", labelKey: "theme.maroon" },
+  { value: "red", css: "rgb(239 68 68)", labelKey: "theme.red" },
+  { value: "green", css: "rgb(34 197 94)", labelKey: "theme.green" },
+  { value: "blue", css: "rgb(59 130 246)", labelKey: "theme.blue" },
+];
+
+const POSITIONS: { value: ChatPanelPosition; labelKey: string }[] = [
+  { value: "right", labelKey: "settings.chat_position_right" },
+  { value: "center", labelKey: "settings.chat_position_center" },
 ];
 
 const inputCls = "w-full rounded-lg border bg-black/30 px-3 py-2 text-sm outline-none placeholder:text-slate-500";
 const inputStyle = { borderColor: "var(--border)" };
 
 export default function SettingsModal({
-  open, settings, online, health, integrations, voice, onClose, onSave, onSaveVoice,
+  open, settings, online, health, integrations, voice, onClose, onSave, onSaveVoice, onChangeLanguage,
 }: Props) {
-  const [color, setColor] = useState<AppSettings["background_color"]>("blue");
+  const [color, setColor] = useState<AppSettings["background_color"]>("maroon");
   const [city, setCity] = useState("");
+  const [chatPosition, setChatPosition] = useState<ChatPanelPosition>("right");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,6 +68,7 @@ export default function SettingsModal({
     if (open && settings) {
       setColor(settings.background_color);
       setCity(settings.city);
+      setChatPosition(settings.chat_panel_position);
       setError(null);
     }
   }, [open, settings]);
@@ -65,7 +88,12 @@ export default function SettingsModal({
     setSaving(true);
     setError(null);
     try {
-      await onSave({ background_color: color, city: city.trim() || undefined });
+      // Madde 7/32: tema, şehir ve panel konumu kullanıcıya özel DB'de saklanır.
+      await onSave({
+        background_color: color,
+        city: city.trim() || undefined,
+        chat_panel_position: chatPosition,
+      });
       const wakes = wakeText.split("\n").map((l) => l.trim()).filter((l) => l.length >= 4).slice(0, 12);
       const exits = exitText.split(",").map((l) => l.trim()).filter((l) => l.length >= 3).slice(0, 12);
       await onSaveVoice({
@@ -90,14 +118,63 @@ export default function SettingsModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-200">Ayarlar</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-200">{t("settings.title")}</h2>
           <button type="button" onClick={onClose} className="btn-accent rounded-md px-2 py-1 text-xs">✕</button>
+        </div>
+
+        {/* Dil (madde 3) — seçim anında uygulanır ve DB'ye yazılır */}
+        <div className="mb-5">
+          <label className="mb-2 block text-[11px] uppercase tracking-widest text-slate-400">
+            {t("settings.language")}
+          </label>
+          <div className="flex gap-2">
+            {(["tr", "en"] as Language[]).map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => void onChangeLanguage(l)}
+                disabled={l === getLang()}
+                className="flex-1 rounded-lg border py-2 text-xs font-semibold disabled:opacity-100"
+                style={{
+                  borderColor: l === getLang() ? "rgb(var(--accent-soft-rgb))" : "var(--border)",
+                  background: l === getLang() ? "rgb(var(--accent-rgb) / 0.2)" : "transparent",
+                  color: l === getLang() ? "rgb(var(--accent-soft-rgb))" : "var(--text-dim)",
+                }}
+              >
+                {l === "tr" ? t("settings.language_tr") : t("settings.language_en")}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Sohbet paneli konumu (madde 32) */}
+        <div className="mb-5">
+          <label className="mb-2 block text-[11px] uppercase tracking-widest text-slate-400">
+            {t("settings.chat_position")}
+          </label>
+          <div className="flex gap-2">
+            {POSITIONS.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                onClick={() => setChatPosition(p.value)}
+                className="flex-1 rounded-lg border py-2 text-xs font-semibold disabled:opacity-100"
+                style={{
+                  borderColor: chatPosition === p.value ? "rgb(var(--accent-soft-rgb))" : "var(--border)",
+                  background: chatPosition === p.value ? "rgb(var(--accent-rgb) / 0.2)" : "transparent",
+                  color: chatPosition === p.value ? "rgb(var(--accent-soft-rgb))" : "var(--text-dim)",
+                }}
+              >
+                {t(p.labelKey)}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Arka plan rengi */}
         <div className="mb-5">
           <label className="mb-2 block text-[11px] uppercase tracking-widest text-slate-400">
-            Arka Plan Rengi
+            {t("settings.theme")}
           </label>
           <div className="flex gap-3">
             {COLORS.map((c) => (
@@ -113,7 +190,7 @@ export default function SettingsModal({
                 }}
               >
                 <span className="h-5 w-5 rounded-full" style={{ background: c.css, boxShadow: `0 0 10px ${c.css}` }} />
-                <span className="text-[10px] text-slate-300">{c.label}</span>
+                <span className="text-[10px] text-slate-300">{t(c.labelKey)}</span>
               </button>
             ))}
           </div>
@@ -122,7 +199,7 @@ export default function SettingsModal({
         {/* Şehir */}
         <div className="mb-5">
           <label htmlFor="city" className="mb-1.5 block text-[11px] uppercase tracking-widest text-slate-400">
-            Hava Durumu Şehri
+            {t("settings.city")}
           </label>
           <input
             id="city"
@@ -151,7 +228,7 @@ export default function SettingsModal({
 
           {/* Uyandırma ifadeleri — satır satır */}
           <label className="mb-1.5 block text-[11px] uppercase tracking-widest text-slate-400">
-            Uyandırma İfadeleri (her satıra bir tane)
+            {t("settings.wake_phrases")}
           </label>
           <textarea
             value={wakeText}
@@ -168,26 +245,26 @@ export default function SettingsModal({
 
           {/* Çıkış ifadeleri */}
           <label className="mb-1.5 block text-[11px] uppercase tracking-widest text-slate-400">
-            Sesli Mod Çıkış İfadeleri (virgülle)
+            {t("settings.exit_phrases")}
           </label>
           <input
             value={exitText}
             onChange={(e) => setExitText(e.target.value)}
-            placeholder="kapat, çıkış, sesli modu kapat"
+            placeholder={t("settings.exit_phrases_placeholder")}
             maxLength={300}
             className={inputCls}
             style={inputStyle}
           />
           <p className="mt-1 mb-3 text-[10px] text-slate-500">
-            Bu ifadeler duyulduğunda Jarvis sesli moddan çıkar.
+            {t("settings.exit_hint")}
           </p>
 
           {/* Çift alkış */}
           <div className="mb-2 flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-200">Çift Alkış ile Açma</p>
+              <p className="text-xs text-slate-200">{t("settings.clap")}</p>
               <p className="text-[10px] text-slate-500">
-                İki kez alkışlayınca Jarvis aktif programın üstünde açılır.
+                {t("settings.clap_desc")}
               </p>
             </div>
             <button
@@ -210,7 +287,7 @@ export default function SettingsModal({
           {/* Alkış hassasiyeti */}
           <div className="mb-1">
             <div className="flex justify-between text-[11px]">
-              <span className="text-slate-400">Alkış Hassasiyeti</span>
+              <span className="text-slate-400">{t("settings.clap_sensitivity")}</span>
               <span className="tabular-nums text-slate-200">{clapSens.toFixed(1)}</span>
             </div>
             <input
@@ -224,8 +301,8 @@ export default function SettingsModal({
               style={{ accentColor: "rgb(var(--accent-soft-rgb))" }}
             />
             <div className="flex justify-between text-[9px] text-slate-500">
-              <span>Daha az duyarlı</span>
-              <span>Daha duyarlı</span>
+              <span>{t("settings.less_sensitive")}</span>
+              <span>{t("settings.more_sensitive")}</span>
             </div>
           </div>
         </div>
@@ -248,18 +325,18 @@ export default function SettingsModal({
           </div>
           <div className="mt-2 border-t pt-2" style={{ borderColor: "var(--border)" }}>
             {[
-              ["WhatsApp", "whatsapp"],
-              ["E-posta", "smtp"],
-              ["Home Assistant", "home_assistant"],
-              ["Relay", "relay"],
+              ["integrations.whatsapp", "whatsapp"],
+              ["integrations.mail", "smtp"],
+              ["integrations.home_assistant", "home_assistant"],
+              ["integrations.relay", "relay"],
             ].map(([label, key]) => {
               const item = integrations?.[key];
               const active = !!item?.configured && (item.connected ?? item.reachable ?? true);
               return (
                 <div className="mt-1 flex justify-between" key={key}>
-                  <span>{label}</span>
+                  <span>{t(label)}</span>
                   <span style={{ color: active ? "rgb(74 222 128)" : "rgb(148 163 184)" }}>
-                    {active ? "Hazır" : "Kapalı"}
+                    {active ? t("integrations.ready") : t("integrations.off")}
                   </span>
                 </div>
               );

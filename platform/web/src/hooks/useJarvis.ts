@@ -11,19 +11,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { clientId, deviceToken } from "../api/client";
+import { getLang, setLang as persistLang, t } from "../i18n";
 import type {
   AppSettings,
   CameraStatus,
   ChatMessage,
   HealthInfo,
+  Language,
   Reminder,
   SystemStats,
   VoiceStatus,
   WeatherInfo,
 } from "../types";
 
-const OFFLINE_NOTE =
-  "JARVIS backend çevrimdışı. Bağlantı yeniden kurulana kadar bazı özellikler kullanılamaz.";
 const MAX_CLIENT_MESSAGES = 200;
 
 export function useJarvis() {
@@ -40,6 +40,8 @@ export function useJarvis() {
 
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
+  /** Madde 3: arayüz dili (localStorage + DB senkron). */
+  const [lang, setLangState] = useState<Language>(() => getLang());
 
   const [camera, setCamera] = useState<CameraStatus>({
     status: "off",
@@ -162,7 +164,25 @@ export function useJarvis() {
     }
   }, [settings?.background_color]);
 
-  // Çevrimdışı bilgi mesajı (istemci tarafında, DB'ye yazılmaz)
+  // Madde 32: sohbet paneli konumunu <html data-chat-position> uygula
+  useEffect(() => {
+    document.documentElement.dataset.chatPosition =
+      settings?.chat_panel_position === "center" ? "center" : "right";
+  }, [settings?.chat_panel_position]);
+
+  // Madde 3: i18n dil değişiklik olaylarını dinle (SettingsModal'dan gelir)
+  useEffect(() => {
+    const onLangChange = () => setLangState(getLang());
+    window.addEventListener("jarvis:lang-change", onLangChange);
+    return () => window.removeEventListener("jarvis:lang-change", onLangChange);
+  }, []);
+
+  // Dil etiketini <html lang> ile baştan eşitle
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  // Çevrimdışı bilgi mesajı (istemci tarafında, DB'ye yazılmaz; i18n'den gelir)
   useEffect(() => {
     if (!online && !offlineNoteShown.current) {
       offlineNoteShown.current = true;
@@ -170,7 +190,7 @@ export function useJarvis() {
         {
           id: `offline-${Date.now()}`,
           role: "system",
-          content: OFFLINE_NOTE,
+          content: t("chat.offline_note"),
           created_at: new Date().toISOString(),
         },
       ]);
@@ -246,10 +266,30 @@ export function useJarvis() {
 
   // ── Ayarlar ──
   const saveSettings = useCallback(
-    async (patch: { background_color?: string; city?: string }) => {
+    async (patch: {
+      background_color?: AppSettings["background_color"];
+      city?: string;
+      language?: Language;
+      chat_panel_position?: AppSettings["chat_panel_position"];
+    }) => {
       const updated = await api.updateSettings(patch);
       setSettings(updated);
       return updated;
+    },
+    []
+  );
+
+  /** Madde 3: dili değiştirir; online ise DB'de kullanıcıya özel kaydeder. */
+  const changeLanguage = useCallback(
+    async (next: Language) => {
+      persistLang(next);
+      setLangState(next);
+      try {
+        const updated = await api.updateSettings({ language: next });
+        setSettings(updated);
+      } catch {
+        /* offline — localStorage tercihi yeterli; DB sonra senkronlanır */
+      }
     },
     []
   );
@@ -425,6 +465,8 @@ export function useJarvis() {
     lastError,
     settings,
     weather,
+    lang,
+    changeLanguage,
     camera,
     photo,
     cameraBusy,

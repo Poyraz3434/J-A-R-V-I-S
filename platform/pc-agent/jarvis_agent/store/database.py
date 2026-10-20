@@ -1,7 +1,8 @@
 """SQLite veri katmanı — sohbet geçmişi, ayarlar ve audit log.
 
-Faz 2'de cihaz eşleştirme tabloları da buraya eklenecek; her özellik kendi
-tablosunda tutulur ve tablolar `init_db` içinde bildirilir.
+Bölüm A: kullanıcıya özel ayarlar (owner bazlı) bu katmanda tutulur;
+misafirler (owner='guest:*') kalıcı ayar yazamaz. Tablolar `init_db`
+içinde bildirilir; şema değişiklikleri idempotenttir.
 """
 from __future__ import annotations
 
@@ -42,6 +43,16 @@ CREATE TABLE IF NOT EXISTS google_home_tokens (
     encrypted_token TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+
+-- Bölüm A: kullanıcıya özel ayarlar (sahibine göre izole; misafir yazamaz)
+CREATE TABLE IF NOT EXISTS user_settings (
+    owner_id TEXT PRIMARY KEY,
+    theme TEXT NOT NULL DEFAULT 'maroon',
+    chat_position TEXT NOT NULL DEFAULT 'right',
+    language TEXT NOT NULL DEFAULT 'tr',
+    city TEXT,
+    updated_at TEXT NOT NULL
+);
 """
 
 
@@ -78,6 +89,8 @@ def init_db() -> None:
                 "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
                 (key, value),
             )
+        # Eski global ayarları (renk/şehir) bir kez 'local' sahibine taşı.
+        _migrate_legacy_settings(conn)
 
 
 def _default_settings() -> dict[str, str]:
@@ -88,7 +101,7 @@ def _default_settings() -> dict[str, str]:
     }
 
 
-# ── Ayarlar ──────────────────────────────────────────────────────────────────
+# ── Ayarlar (genel/geriye dönük) ─────────────────────────────────────────────
 
 def get_setting(key: str, default: Optional[str] = None) -> Optional[str]:
     with closing(connect()) as conn:
@@ -122,6 +135,71 @@ def increment_setting_int(key: str, by: int = 1) -> int:
         )
         row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
     return int(row["value"])
+
+
+# ── Bölüm A: kullanıcıya özel ayarlar (owner bazlı) ──────────────────────────
+
+_USER_SETTINGS_COLS = ("theme", "chat_position", "language", "city")
+
+
+def _owner_row(owner_id: str) -> dict[str, Any]:
+    """owner satırını getirir; yoksa varsayılanlarla döndürür (yazmaz)."""
+    with closing(connect()) as conn:
+        row = conn.execute(
+            "SELECT owner_id, theme, chat_position, language, city, updated_at "
+            "FROM user_settings WHERE owner_id = ?",
+            (owner_id,),
+        ).fetchone()
+    if row:
+        return dict(row)
+    return {
+        "owner_id": owner_id,
+        "theme": config.DEFAULT_BG_COLOR,
+        "chat_position": config.DEFAULT_CHAT_POSITION,
+        "language": config.DEFAULT_LANGUAGE,
+        "city": config.DEFAULT_CITY or None,
+        "updated_at": None,
+    }
+
+
+def is_guest(owner_id: str) -> bool:
+    """Misafir oturumlar kalıcı ayar yazamaz (madde 6/16 kuralı)."""
+    return str(owner_id or "").startswith("guest:")
+
+
+def get_user_settings(owner_id: str) -> dict[str, Any]:
+    """Sahibinin ayarlarını döndürür; misafirler her zaman varsayılanı görür."""
+    row = _owner_row(owner_id)
+    if is_guest(owner_id):
+        return {
+            "owner_id": owner_id,
+            "theme": config.DEFAULT_BG_COLOR,
+            "chat_position": config.DEFAULT_CHAT_POSITION,
+            "language": config.DEFAULT_LANGUAGE,
+            "city": config.DEFAULT_CITY or None,
+            "updated_at": None,
+        }
+    return row
+
+
+def update_user_settings(owner_id: str, patch: dict[str, Any]) -> dict[str, Any]:
+    """Sahibinin ayarlarını günceller (misafirler için no-op + mevcut döner)."""
+    if is_guest(owner_id):
+        return get_user_settings(owner_id)
+    allowed = {k: v for k, v in patch.items() if k in _USER_SETTINGS_COLS and v is not None}
+    with _write_lock, closing(connect()) as conn, conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO user_settings (owner_id, updated_at) VALUES (?, ?)",
+            (owner_id, _now()),
+        )
+        sets = ", ".join(f"{col} = ?" for col in allowed)
+        params = list(allowed.values()) + [_now(), owner_id]
+        if sets:
+            conn.execute(
+                f"UPDATE user_settings SET {sets}, updated_at = ? WHERE owner_id = ?",
+                params,
+            )
+    return _owner_row(owner_id)
 
 
 # ── Sohbet geçmişi ───────────────────────────────────────────────────────────
@@ -172,6 +250,8 @@ def get_audit(limit: int = 100) -> list[dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
+# ── Google Home token deposu (entegrasyon, Faz 5-7) ──────────────────────────
+
 def save_google_home_token(owner_id: str, encrypted_token: str) -> None:
     with _write_lock, closing(connect()) as conn, conn:
         conn.execute(
@@ -194,3 +274,48 @@ def get_google_home_token(owner_id: str) -> Optional[str]:
 def delete_google_home_token(owner_id: str) -> None:
     with _write_lock, closing(connect()) as conn, conn:
         conn.execute("DELETE FROM google_home_tokens WHERE owner_id = ?", (owner_id,))
+
+
+# ── Eski global ayarlardan tek seferlik taşıma ───────────────────────────────
+
+def _migrate_legacy_settings(conn: sqlite3.Connection) -> None:
+    """Global 'settings' (renk/şehir) değerlerini owner='local' altına kopyalar.
+
+    Idempotenttir: işaret 'settings' tablosundaki 'user_settings_migrated'
+    anahtarıyla tutulur. Yalnızca kendisine verilen bağlantıyı kullanır
+    (init_db'nin yaz kilidi içinde çağrılır — kilit yeniden edinilemez!).
+    """
+    marker = conn.execute(
+        "SELECT value FROM settings WHERE key = 'user_settings_migrated'"
+    ).fetchone()
+    if marker and marker["value"] == "1":
+        return
+    existing = conn.execute(
+        "SELECT 1 FROM user_settings WHERE owner_id = 'local'"
+    ).fetchone()
+    if not existing:
+        theme = conn.execute(
+            "SELECT value FROM settings WHERE key = 'background_color'"
+        ).fetchone()
+        city = conn.execute(
+            "SELECT value FROM settings WHERE key = 'city'"
+        ).fetchone()
+        theme_val = theme["value"] if theme else None
+        city_val = city["value"] if city else None
+        conn.execute(
+            "INSERT INTO user_settings (owner_id, theme, city, updated_at) "
+            "VALUES (?, COALESCE(?, ?), COALESCE(?, ?), ?)",
+            (
+                "local",
+                theme_val if theme_val in config.ALLOWED_BG_COLORS else None,
+                config.DEFAULT_BG_COLOR,
+                city_val,
+                config.DEFAULT_CITY or None,
+                _now(),
+            ),
+        )
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES ('user_settings_migrated', '1') "
+        "ON CONFLICT(key) DO UPDATE SET value = '1'"
+    )
+

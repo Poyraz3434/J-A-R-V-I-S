@@ -55,6 +55,17 @@ def client(monkeypatch, tmp_path):
     db_path = tmp_path / "test.db"
     monkeypatch.setattr(config, "DB_PATH", db_path)
     monkeypatch.setattr(database, "connect", lambda: _connect_to(db_path))
+    # Hermetik: weather çağrı anında config.env okuyabildiği için gerçek
+    # .env'den sızabilecek OWM anahtarını test boyunca gizle (satır 42'deki
+    # modül özniteliği sıfırlaması tek başına yeterli değildi).
+    real_env = config.env
+
+    def _hermetic_env(name: str, default: str = "") -> str:
+        if name in ("JARVIS_OWM_API_KEY", "OWM_API_KEY"):
+            return default
+        return real_env(name, default)
+
+    monkeypatch.setattr(config, "env", _hermetic_env)
     app = create_app()
     with TestClient(app) as test_client:  # startup/shutdown çalışır
         yield test_client
@@ -98,7 +109,7 @@ def test_ws_stats_stream(client):
 def test_settings_defaults(client):
     body = client.get("/api/settings").json()
     assert body["background_color"] in config.ALLOWED_BG_COLORS
-    assert body["allowed_background_colors"] == ["red", "green", "blue"]
+    assert body["allowed_background_colors"] == ["red", "green", "blue", "maroon"]
     assert body["city"]
 
 

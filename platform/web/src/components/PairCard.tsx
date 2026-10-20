@@ -1,7 +1,9 @@
-/** Eşleştirme kartı (Faz 2) — QR üret, cihazları gör, cihaz kaldır. */
+/** Eşleştirme kartı (Faz 2) — QR üret, cihazları gör, cihaz kaldır.
+    Madde 11: QR süresi dolunca BİR KEZ otomatik yenilenir (döngü korumalı). */
 import { useCallback, useEffect, useRef, useState } from "react";
 import Card from "./Card";
 import { api, ApiError } from "../api/client";
+import { t } from "../i18n";
 import type { DeviceSummary } from "../types";
 
 interface PairStatus {
@@ -17,6 +19,8 @@ export default function PairCard({ online }: { online: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timerRef = useRef<number | null>(null);
+  /** Otomatik yenileme sayacı: sonsuz döngüyü (üret → süresi dol → üret) engeller. */
+  const autoRenewRef = useRef(0);
 
   const load = useCallback(async () => {
     if (!online) return;
@@ -34,7 +38,8 @@ export default function PairCard({ online }: { online: boolean }) {
     return () => window.clearInterval(id);
   }, [load]);
 
-  // QR aktifken geri sayım bitince listeyi tazele
+  // QR aktifken geri sayım bitince listeyi tazele; otomatik yenileme en fazla
+  // 2 kez üst üste yapılır (kullanıcı karttan ayrıldıysa döngü kurulmaz).
   useEffect(() => {
     if (timerRef.current) window.clearTimeout(timerRef.current);
     if (qrKey !== null && status?.pending && (status.expires_in ?? 0) > 0) {
@@ -48,19 +53,34 @@ export default function PairCard({ online }: { online: boolean }) {
     };
   }, [qrKey, status?.pending, status?.expires_in, load]);
 
-  const startPairing = async () => {
+  const startPairing = async (auto = false) => {
     setBusy(true);
     setError(null);
     try {
       await api.pairStart();
       setQrKey(Date.now());
+      if (auto) autoRenewRef.current += 1;
+      else autoRenewRef.current = 0;
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Eşleştirme başlatılamadı");
+      setError(e instanceof Error ? e.message : t("pair.start_failed"));
     } finally {
       setBusy(false);
     }
   };
+
+  // Madde 11: QR gösterilirken kodun süresi döndüyse bir kez yeni kod üret.
+  useEffect(() => {
+    if (
+      qrKey !== null &&
+      status &&
+      !status.pending &&
+      autoRenewRef.current < 2
+    ) {
+      void startPairing(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qrKey, status?.pending]);
 
   const revoke = async (id: string) => {
     setBusy(true);

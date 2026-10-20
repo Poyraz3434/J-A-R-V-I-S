@@ -26,18 +26,23 @@ def _unavailable(reason: str) -> dict[str, Any]:
     return {"available": False, "reason": reason, "fetched_at": _now_iso()}
 
 
-def get(city: Optional[str] = None, force: bool = False) -> dict[str, Any]:
-    """Şehir için güncel hava durumu; her hata zarif biçimde `available=False` döner."""
+def get(city: Optional[str] = None, force: bool = False, lang: str = "tr") -> dict[str, Any]:
+    """Şehir için güncel hava durumu; her hata zarif biçimde `available=False` döner.
+
+    ``lang`` OWM açıklama dilidir (madde 3: yalnızca tr/en desteklenir).
+    """
     city = (city or config.DEFAULT_CITY).strip()
+    lang = lang if lang in config.ALLOWED_LANGUAGES else "tr"
     api_key = config.OWM_API_KEY
     if not api_key:
         return _unavailable("no_api_key")
     if not city:
         return _unavailable("no_city")
 
+    cache_key = f"{city.lower()}:{lang}"
     if not force:
         with _lock:
-            hit = _cache.get(city.lower())
+            hit = _cache.get(cache_key)
             if hit and time.time() - hit[0] < _CACHE_TTL:
                 return hit[1]
 
@@ -45,7 +50,7 @@ def get(city: Optional[str] = None, force: bool = False) -> dict[str, Any]:
         with httpx.Client(timeout=10.0) as client:
             resp = client.get(
                 "https://api.openweathermap.org/data/2.5/weather",
-                params={"q": city, "units": "metric", "lang": "tr", "appid": api_key},
+                params={"q": city, "units": "metric", "lang": lang, "appid": api_key},
             )
     except httpx.HTTPError as exc:
         logger.warning("Hava durumu isteği başarısız (%s): %s", city, exc)

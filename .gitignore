@@ -30,3 +30,9 @@ Output/
 
 # temp test artifacts (commit messages, scratch output)
 tests/_*.txt
+
+# test/development SQLite artifacts
+jarvis.db
+jarvis-security.db
+*.db-wal
+*.db-shm

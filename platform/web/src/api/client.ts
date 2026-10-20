@@ -87,7 +87,14 @@ export const api = {
       `/api/weather${refresh ? "?refresh=true" : ""}`
     ),
   settings: () => request<import("../types").AppSettings>("/api/settings"),
-  updateSettings: (patch: Partial<{ background_color: string; city: string }>) =>
+  updateSettings: (
+    patch: Partial<{
+      background_color: string;
+      city: string;
+      language: string;
+      chat_panel_position: string;
+    }>
+  ) =>
     request<import("../types").AppSettings>("/api/settings", {
       method: "PUT",
       body: JSON.stringify(patch),

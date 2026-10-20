@@ -133,9 +133,16 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=allowed_origins,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "X-Device-Token"],
+        allow_headers=["Content-Type", "X-Device-Token", "X-Client-ID"],
         allow_credentials=False,
     )
+
+    # Bölüm A (madde 7): her isteğe kararlı veri sahipliği (owner) etiketi.
+    # Sohbet/ayarlar bu etikete göre kullanıcı bazında izole edilir.
+    @app.middleware("http")
+    async def _attach_owner(request: Request, call_next):
+        request.state.owner = security.request_owner(request)
+        return await call_next(request)
 
     # ── Cihaz güvenliği (Faz 2): loopback dışı istekler eşleşmiş cihazdan
     #    geçerli X-Device-Token ile gelmek zorunda (pairing şartsa).
@@ -182,6 +189,15 @@ def create_app() -> FastAPI:
     REMINDER_SERVICE.announcer = _make_announcer(app.state.voice, relay_client)
     app.state.reminders = REMINDER_SERVICE
     app.state.google_home_oauth_states = {}
+
+    @app.middleware("http")
+    async def _settings_ownership(request: Request, call_next: Any) -> Any:
+        """Kullanıcıya özel ayarların sahibini istekten çözüp state'e koyar.
+
+        Madde 7: ayarlar cihaz/istemci bazında izole tutulur (DB'de).
+        """
+        request.state.settings_owner = security.request_owner(request)
+        return await call_next(request)
 
     app.include_router(routes_system.router)
     app.include_router(routes_chat.router)

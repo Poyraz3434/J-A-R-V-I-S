@@ -85,10 +85,18 @@ export interface VoiceStatus {
   error?: string | null;
 }
 
+export type BackgroundColor = "red" | "green" | "blue" | "maroon";
+export type Language = "tr" | "en";
+export type ChatPanelPosition = "right" | "center";
+
 export interface AppSettings {
-  background_color: "red" | "green" | "blue";
+  background_color: BackgroundColor;
   city: string;
-  allowed_background_colors: string[];
+  /** Madde 3: arayüz dili (tr/en) — DB'de kullanıcıya özel saklanır. */
+  language: Language;
+  /** Madde 32: sohbet paneli konumu (right/center). */
+  chat_panel_position: ChatPanelPosition;
+  allowed_background_colors: BackgroundColor[];
 }
 
 /** Faz 4: hatırlatıcı — reminders/service.py şemasıyla uyumlu. */
