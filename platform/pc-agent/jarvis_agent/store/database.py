@@ -53,6 +53,21 @@ CREATE TABLE IF NOT EXISTS user_settings (
     city TEXT,
     updated_at TEXT NOT NULL
 );
+
+-- Bölüm B: hesaplar (madde 5/16) — şifre ve güvenlik cevabı bcrypt hash saklanır
+CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    first_name_lower TEXT NOT NULL,
+    last_name_lower TEXT NOT NULL,
+    birth_date TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    security_question TEXT NOT NULL,
+    security_answer_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_name ON users (first_name_lower, last_name_lower);
 """
 
 
@@ -318,4 +333,69 @@ def _migrate_legacy_settings(conn: sqlite3.Connection) -> None:
         "INSERT INTO settings (key, value) VALUES ('user_settings_migrated', '1') "
         "ON CONFLICT(key) DO UPDATE SET value = '1'"
     )
+
+
+# ── Kullanıcılar (Bölüm B — madde 5/16) ──────────────────────────────────────
+
+def create_user(
+    first_name: str,
+    last_name: str,
+    birth_date: str,
+    password_hash: str,
+    security_question: str,
+    security_answer_hash: str,
+) -> dict[str, Any]:
+    """Yeni hesap oluşturur; aynı isim+soyisim varsa ValueError fırlatır."""
+    import uuid
+
+    user_id = uuid.uuid4().hex[:16]
+    try:
+        with _write_lock, closing(connect()) as conn, conn:
+            conn.execute(
+                "INSERT INTO users (id, first_name, last_name, first_name_lower, "
+                "last_name_lower, birth_date, password_hash, security_question, "
+                "security_answer_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    user_id,
+                    first_name,
+                    last_name,
+                    first_name.lower(),
+                    last_name.lower(),
+                    birth_date,
+                    password_hash,
+                    security_question[:200],
+                    security_answer_hash,
+                    _now(),
+                ),
+            )
+    except sqlite3.IntegrityError as exc:
+        raise ValueError("Bu isim ve soyisimle bir hesap zaten var.") from exc
+    return get_user_by_id(user_id) or {}
+
+
+def _user_row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
+    return dict(row)
+
+
+def get_user_by_name(first_name: str, last_name: str) -> Optional[dict[str, Any]]:
+    with closing(connect()) as conn:
+        row = conn.execute(
+            "SELECT * FROM users WHERE first_name_lower = ? AND last_name_lower = ?",
+            (first_name.strip().lower(), last_name.strip().lower()),
+        ).fetchone()
+    return _user_row_to_dict(row) if row else None
+
+
+def get_user_by_id(user_id: str) -> Optional[dict[str, Any]]:
+    with closing(connect()) as conn:
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    return _user_row_to_dict(row) if row else None
+
+
+def update_user_password(user_id: str, password_hash: str) -> bool:
+    with _write_lock, closing(connect()) as conn, conn:
+        cur = conn.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id)
+        )
+    return cur.rowcount > 0
 

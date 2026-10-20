@@ -89,6 +89,18 @@ def env(name: str, default: str = "") -> str:
 BIND_HOST = env("JARVIS_BIND", "127.0.0.1")
 BIND_PORT = int(env("JARVIS_PORT", "8000"))
 
+# ── Kimlik doğrulama (Bölüm B — madde 5, 16) ────────────────────────────────
+# JWT secret .env'den okunur; koda ASLA gömülmez. Boşsa her başlangıçta rastgele
+# üretilir (token'lar restart'ta düşer — kalıcı oturum için .env'e yazın).
+AUTH_SECRET = env("JARVIS_JWT_SECRET")
+ACCESS_TOKEN_TTL_SECONDS = 15 * 60            # madde 16: access 15 dk
+REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 3600     # madde 16: refresh 7 gün
+RESET_TOKEN_TTL_SECONDS = 10 * 60             # şifre sıfırlama token'ı 10 dk
+BCRYPT_ROUNDS = 12                            # madde 16: bcrypt 12 round
+LOGIN_MAX_FAILURES = 5                        # madde 16: 5 hatalı girişte
+LOGIN_BLOCK_SECONDS = 15 * 60                 # 15 dakika engelleme
+DEFAULT_LANGUAGE = env("JARVIS_DEFAULT_LANGUAGE", "tr")
+
 
 # ── LLM sağlayıcısı ──────────────────────────────────────────────────────────
 LLM_PROVIDER = env("JARVIS_LLM_PROVIDER").lower()    # boş → otomatik algılama

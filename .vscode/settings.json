@@ -36,5 +36,6 @@
         "**/build": true,
         "**/Output": true
     },
-    "typescript.tsserver.maxTsServerMemory": 1024
+    "typescript.tsserver.maxTsServerMemory": 1024,
+    "python.terminal.useEnvFile": true
 }
